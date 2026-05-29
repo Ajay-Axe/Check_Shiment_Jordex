@@ -1,0 +1,24 @@
+# Environment variables
+.env
+
+# Specific folders to ignore
+Shipments/
+Logs/
+Screenshots/
+session_data/
+
+# Python packages and cache
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+
+# IDEs and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

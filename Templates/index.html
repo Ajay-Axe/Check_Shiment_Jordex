@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrier Tracking Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f6fa;--white:#fff;--border:#e3e6ee;
+  --text:#1a1d26;--text-sec:#6b7084;--text-muted:#9da3b4;
+  --accent:#2563eb;--accent-light:#eff4ff;
+  --green:#16a34a;--green-light:#ecfdf5;
+  --orange:#ea580c;--orange-light:#fff7ed;
+  --red:#dc2626;--red-light:#fef2f2;
+  --purple:#7c3aed;--purple-light:#f5f3ff;
+  --amber:#d97706;--amber-light:#fffbeb;
+  --indigo:#4F46E5;--neon:#22C55E;--midnight:#0F172A;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+
+/* ── NAV ── */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:var(--white);border-bottom:1px solid var(--border)}
+.nav-left{display:flex;align-items:center;gap:12px}
+.nav-logo{width:32px;height:32px;background:var(--indigo);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;font-family:'DM Mono',monospace}
+.nav-title{font-size:16px;font-weight:700}
+.nav-title span{color:var(--text-muted);font-weight:400;font-size:12px;margin-left:6px}
+.nav-links{display:flex;gap:4px}
+.nav-links a{padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;color:var(--text-sec);transition:all .15s}
+.nav-links a:hover{background:var(--bg);color:var(--text)}
+.nav-links a.active{background:var(--indigo);color:#fff}
+
+.page{padding:28px 32px;max-width:900px;margin:0 auto}
+.page-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:28px}
+
+/* ── SECTION ── */
+.section{background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.section-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.section-title{font-size:15px;font-weight:600}
+
+/* ── FORM ── */
+.track-form{padding:20px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group select,.form-group input{padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;background:var(--white);min-width:180px}
+.form-group select:focus,.form-group input:focus{border-color:var(--accent)}
+
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--indigo);color:#fff}
+.btn-primary:hover{background:#4338ca}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── RESULT ── */
+.result-area{padding:20px}
+.empty-msg{padding:40px;text-align:center;color:var(--text-muted);font-size:13px}
+
+.result-card{background:#fafbfd;border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.result-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.result-carrier{font-size:16px;font-weight:700}
+.result-container{font-family:'DM Mono',monospace;font-size:13px;color:var(--indigo);font-weight:600}
+
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.result-field{display:flex;flex-direction:column;gap:2px}
+.result-field-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.result-field-value{font-size:13px;font-weight:600;font-family:'DM Mono',monospace}
+
+/* ── ROUTE VIS ── */
+.route-vis{display:flex;align-items:center;gap:0;margin:20px 0;position:relative;padding:0 20px}
+.route-node{display:flex;flex-direction:column;align-items:center;gap:4px;z-index:1;min-width:80px}
+.route-dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--indigo);background:var(--white)}
+.route-dot.active{background:var(--indigo)}
+.route-dot.current{background:var(--neon);border-color:var(--neon);box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+.route-port{font-size:10px;font-weight:700;color:var(--text-sec);text-align:center;max-width:100px}
+.route-date{font-size:9px;color:var(--text-muted);font-family:'DM Mono',monospace}
+.route-line{flex:1;height:3px;background:var(--border);min-width:20px}
+.route-line.active{background:var(--indigo)}
+
+.route-vessel{text-align:center;margin:8px 0;font-size:11px;color:var(--text-muted)}
+.route-vessel b{color:var(--text-sec)}
+
+/* ── STATUS BADGE ── */
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700}
+.status-badge.delivered{background:var(--green-light);color:var(--green)}
+.status-badge.in-transit{background:var(--accent-light);color:var(--accent)}
+.status-badge.loaded{background:var(--purple-light);color:var(--purple)}
+.status-badge.pending{background:var(--orange-light);color:var(--orange)}
+
+/* ── EVENTS ── */
+.events-list{margin-top:12px}
+.event-item{display:flex;align-items:flex-start;gap:12px;padding:8px 0;border-bottom:1px solid #eef0f4}
+.event-item:last-child{border-bottom:none}
+.event-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:var(--text-muted)}
+.event-dot.latest{background:var(--neon)}
+.event-text{font-size:12px;color:var(--text-sec);flex:1}
+.event-text b{color:var(--text)}
+.event-time{font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;flex-shrink:0}
+
+/* ── LOADING ── */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--indigo);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-left">
+    <div class="nav-logo">AX</div>
+    <div class="nav-title">Shipment Verification<span>v5.0</span></div>
+  </div>
+  <div class="nav-links">
+    <a href="/">Dashboard</a>
+    <a href="/documents">Documents</a>
+    <a href="/carrier" class="active">Carrier Portal</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-title">Carrier Tracking Portal</div>
+  <div class="page-subtitle">Track containers across carrier portals in real time</div>
+
+  <!-- TRACK FORM -->
+  <div class="section">
+    <div class="section-header">
+      <span class="material-icons-outlined" style="font-size:18px;color:var(--indigo)">search</span>
+      <span class="section-title">Track Container</span>
+    </div>
+    <div class="track-form">
+      <div class="form-group">
+        <label>Carrier</label>
+        <select id="carrierSelect">
+          <option value="">Select carrier...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Container Number</label>
+        <input type="text" id="containerInput" placeholder="e.g. MSCU1234567" maxlength="15" style="min-width:220px;text-transform:uppercase">
+      </div>
+      <button class="btn btn-primary" id="btnTrack" onclick="trackContainer()">
+        <span class="material-icons-outlined" style="font-size:16px">travel_explore</span> Track
+      </button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="material-icons-outlined" style="font-size:18px;color:var(--indigo)">route</span>
+      <span class="section-title">Tracking Results</span>
+    </div>
+    <div class="result-area" id="resultArea">
+      <div class="empty-msg">Enter a carrier and container number to track.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+// ── Load carriers ──
+async function loadCarriers(){
+  try{
+    const r=await fetch('/api/carrier/list');
+    const d=await r.json();
+    const sel=document.getElementById('carrierSelect');
+    (d.carriers||[]).forEach(c=>{
+      const opt=document.createElement('option');
+      opt.value=c;opt.textContent=c;
+      sel.appendChild(opt);
+    });
+  }catch(e){console.error(e)}
+}
+
+// ── Track ──
+async function trackContainer(){
+  const carrier=document.getElementById('carrierSelect').value;
+  const container=document.getElementById('containerInput').value.trim().toUpperCase();
+  if(!carrier||!container){
+    document.getElementById('resultArea').innerHTML='<div class="empty-msg">Please select a carrier and enter a container number.</div>';
+    return;
+  }
+
+  document.getElementById('btnTrack').disabled=true;
+  document.getElementById('resultArea').innerHTML=`<div class="empty-msg"><div class="spinner"></div><br>Tracking ${esc(container)} via ${esc(carrier)}...<br><span style="font-size:11px;color:var(--text-muted)">This may take 30-60 seconds</span></div>`;
+
+  try{
+    const r=await fetch('/api/carrier/track',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({carrier,container})
+    });
+    const d=await r.json();
+    if(d.status==='ok'&&d.result){
+      renderResult(carrier,container,d.result);
+    }else{
+      document.getElementById('resultArea').innerHTML=`<div class="empty-msg" style="color:var(--red)">Tracking failed: ${esc(d.error||'Unknown error')}</div>`;
+    }
+  }catch(e){
+    document.getElementById('resultArea').innerHTML=`<div class="empty-msg" style="color:var(--red)">Network error: ${esc(e.message)}</div>`;
+  }finally{
+    document.getElementById('btnTrack').disabled=false;
+  }
+}
+
+// ── Render result ──
+function renderResult(carrier,container,data){
+  const statusMap={
+    'delivered':'delivered','arrived':'delivered',
+    'in transit':'in-transit','in_transit':'in-transit','on water':'in-transit',
+    'loaded':'loaded','departed':'loaded',
+    'pending':'pending','booked':'pending'
+  };
+  const rawStatus=(data.status||data.shipment_status||'unknown').toLowerCase();
+  const statusCls=statusMap[rawStatus]||'pending';
+  const statusText=(data.status||data.shipment_status||'Unknown').toUpperCase();
+
+  let html=`<div class="result-card">
+    <div class="result-header">
+      <div>
+        <div class="result-carrier">${esc(carrier)}</div>
+        <div class="result-container">${esc(container)}</div>
+      </div>
+      <span class="status-badge ${statusCls}"><span class="material-icons-outlined" style="font-size:14px">${statusCls==='delivered'?'check_circle':statusCls==='in-transit'?'sailing':'schedule'}</span> ${esc(statusText)}</span>
+    </div>`;
+
+  // Data grid
+  const fields=[
+    {label:'POL',value:data.pol||data.port_of_loading||''},
+    {label:'POD',value:data.pod||data.port_of_discharge||''},
+    {label:'Vessel',value:data.arrival_vessel||data.vessel||''},
+    {label:'Voyage',value:data.arrival_voyage||data.loaded_voyage||data.voyage||''},
+    {label:'ETD',value:data.etd||data.departure_date||''},
+    {label:'ETA',value:data.eta||data.arrival_date||''},
+    {label:'Terminal',value:data.pod_terminal||data.terminal||''},
+    {label:'Container Type',value:data.container_type||data.container_size||''},
+    {label:'Weight',value:data.weight||data.gross_weight||''},
+  ].filter(f=>f.value);
+
+  if(fields.length){
+    html+=`<div class="result-grid">`;
+    fields.forEach(f=>{
+      html+=`<div class="result-field"><span class="result-field-label">${esc(f.label)}</span><span class="result-field-value">${esc(f.value)}</span></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Route visualization
+  const pol=data.pol||data.port_of_loading||'';
+  const pod=data.pod||data.port_of_discharge||'';
+  const etd=data.etd||data.departure_date||'';
+  const eta=data.eta||data.arrival_date||'';
+  const vessel=data.arrival_vessel||data.vessel||'';
+  const transits=data.transits||[];
+
+  if(pol||pod){
+    html+=`<div class="route-vis">`;
+
+    // POL node
+    html+=`<div class="route-node"><div class="route-dot active"></div><div class="route-port">${esc(pol)}</div><div class="route-date">${esc(etd)}</div></div>`;
+
+    // Transit nodes
+    transits.forEach(t=>{
+      html+=`<div class="route-line active"></div>`;
+      html+=`<div class="route-node"><div class="route-dot active"></div><div class="route-port">${esc(t.port||t.location||'')}</div><div class="route-date">${esc(t.eta||t.date||'')}</div></div>`;
+    });
+
+    // Line to POD
+    const isDelivered=statusCls==='delivered';
+    html+=`<div class="route-line ${isDelivered?'active':''}"></div>`;
+    html+=`<div class="route-node"><div class="route-dot ${isDelivered?'active':'current'}"></div><div class="route-port">${esc(pod)}</div><div class="route-date">${esc(eta)}</div></div>`;
+
+    html+=`</div>`;
+
+    if(vessel){
+      html+=`<div class="route-vessel"><span class="material-icons-outlined" style="font-size:14px;vertical-align:middle">directions_boat</span> <b>${esc(vessel)}</b></div>`;
+    }
+  }
+
+  // Events list
+  const events=data.events||data.tracking_events||[];
+  if(events.length){
+    html+=`<div class="events-list">`;
+    events.slice(0,15).forEach((ev,i)=>{
+      const desc=ev.description||ev.event||ev.activity||'';
+      const loc=ev.location||ev.port||'';
+      const dt=ev.date||ev.timestamp||ev.datetime||'';
+      html+=`<div class="event-item"><div class="event-dot ${i===0?'latest':''}"></div><div class="event-text"><b>${esc(desc)}</b>${loc?' — '+esc(loc):''}</div><span class="event-time">${esc(dt)}</span></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  html+=`</div>`;
+  document.getElementById('resultArea').innerHTML=html;
+}
+
+// Enter key support
+document.getElementById('containerInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter')trackContainer();
+});
+
+loadCarriers();
+</script>
+</body>
+</html>

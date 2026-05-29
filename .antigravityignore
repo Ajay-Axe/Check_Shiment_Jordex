@@ -1,0 +1,4 @@
+# Ignore search files
+node_modules/
+.git/
+session_data/

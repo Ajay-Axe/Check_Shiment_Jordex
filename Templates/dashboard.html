@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipment Verification — Dashboard</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    :root {
+      --bg: #f5f6fa;
+      --white: #fff;
+      --border: #e3e6ee;
+      --text: #1a1d26;
+      --text-sec: #6b7084;
+      --text-muted: #9da3b4;
+      --accent: #2563eb;
+      --accent-light: #eff4ff;
+      --green: #16a34a;
+      --green-light: #ecfdf5;
+      --orange: #ea580c;
+      --orange-light: #fff7ed;
+      --red: #dc2626;
+      --red-light: #fef2f2;
+      --purple: #7c3aed;
+      --purple-light: #f5f3ff;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+      --indigo: #4F46E5;
+      --neon: #22C55E;
+      --midnight: #0F172A;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    /* ── NAV ── */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border)
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .nav-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--indigo);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace
+    }
+
+    .nav-title {
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .nav-title span {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 12px;
+      margin-left: 6px
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px
+    }
+
+    .nav-links a {
+      padding: 6px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-sec);
+      transition: all .15s
+    }
+
+    .nav-links a:hover {
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    .nav-links a.active {
+      background: var(--indigo);
+      color: #fff
+    }
+
+    .page {
+      padding: 28px 32px
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px
+    }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px
+    }
+
+    .stat-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px
+    }
+
+    .stat-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sec);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .stat-card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px
+    }
+
+    .stat-card-icon.blue {
+      background: var(--accent-light);
+      color: var(--accent)
+    }
+
+    .stat-card-icon.green {
+      background: var(--green-light);
+      color: var(--green)
+    }
+
+    .stat-card-icon.orange {
+      background: var(--orange-light);
+      color: var(--orange)
+    }
+
+    .stat-card-icon.purple {
+      background: var(--purple-light);
+      color: var(--purple)
+    }
+
+    .stat-card-value {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px
+    }
+
+    .stat-card-desc {
+      font-size: 12px;
+      color: var(--text-muted)
+    }
+
+    /* ── SECTION ── */
+    .section {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      overflow: hidden
+    }
+
+    .section-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600
+    }
+
+    .section-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg);
+      color: var(--text-sec);
+      padding: 3px 10px;
+      border-radius: 20px
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s;
+      font-family: 'DM Sans', sans-serif
+    }
+
+    .btn-primary {
+      background: var(--indigo);
+      color: #fff
+    }
+
+    .btn-primary:hover {
+      background: #4338ca
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff
+    }
+
+    .btn-danger:hover {
+      background: #b91c1c
+    }
+
+    .btn-outline {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-sec)
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .btn-green {
+      background: var(--neon);
+      color: #fff
+    }
+
+    .btn-green:hover {
+      background: #16a34a
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 12px
+    }
+
+    /* ── TOGGLE ── */
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      cursor: pointer
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #cbd5e1;
+      border-radius: 24px;
+      transition: .25s
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: .25s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .2)
+    }
+
+    .toggle input:checked+.toggle-slider {
+      background: var(--neon)
+    }
+
+    .toggle input:checked+.toggle-slider::before {
+      transform: translateX(20px)
+    }
+
+    /* ── CONTROLS ROW ── */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 20px
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .control-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .control-value {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-sec);
+      min-width: 32px
+    }
+
+    .date-input {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      background: var(--white);
+      outline: none
+    }
+
+    .date-input:focus {
+      border-color: var(--accent)
+    }
+
+    .separator {
+      width: 1px;
+      height: 24px;
+      background: var(--border)
+    }
+
+    /* ── STATUS ── */
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f3f4f8
+    }
+
+    .status-line:last-child {
+      border-bottom: none
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .status-dot.idle {
+      background: var(--text-muted)
+    }
+
+    .status-dot.running {
+      background: var(--green);
+      animation: pulse 1s infinite
+    }
+
+    .status-dot.cancelling {
+      background: var(--orange);
+      animation: pulse .8s infinite
+    }
+
+    .status-dot.error {
+      background: var(--red)
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    /* ── LOG ── */
+    .log-list {
+      max-height: 400px;
+      overflow-y: auto
+    }
+
+    .log-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 8px 20px;
+      border-bottom: 1px solid #f3f4f8
+    }
+
+    .log-item:last-child {
+      border-bottom: none
+    }
+
+    .log-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0
+    }
+
+    .log-dot.info {
+      background: var(--accent)
+    }
+
+    .log-dot.success {
+      background: var(--green)
+    }
+
+    .log-dot.warn {
+      background: var(--orange)
+    }
+
+    .log-dot.error {
+      background: var(--red)
+    }
+
+    .log-dot.default {
+      background: var(--text-muted)
+    }
+
+    .log-content {
+      flex: 1;
+      min-width: 0
+    }
+
+    .log-detail {
+      font-size: 12px;
+      color: var(--text-sec);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .log-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      white-space: nowrap;
+      flex-shrink: 0
+    }
+
+    .empty-msg {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <div class="nav">
+    <div class="nav-left">
+      <div class="nav-logo">AX</div>
+      <div class="nav-title">Shipment Verification<span>v5.0</span></div>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="active">Dashboard</a>
+      <a href="/documents">Documents</a>
+      <a href="/carrier">Carrier Portal</a>
+    </div>
+  </div>
+
+  <div class="page">
+    <div class="page-title">Verification Dashboard</div>
+    <div class="page-subtitle">Autonomous shipment processing, comparison, and tracking</div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Processed</span>
+          <div class="stat-card-icon blue"><span class="material-icons-outlined">fact_check</span></div>
+        </div>
+        <div class="stat-card-value" id="statProcessed">0</div>
+        <div class="stat-card-desc">Shipments with comparison results</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">No Document</span>
+          <div class="stat-card-icon orange"><span class="material-icons-outlined">folder_off</span></div>
+        </div>
+        <div class="stat-card-value" id="statNoDoc">0</div>
+        <div class="stat-card-desc">Shipments missing HBL/MBL</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Checked</span>
+          <div class="stat-card-icon green"><span class="material-icons-outlined">verified</span></div>
+        </div>
+        <div class="stat-card-value" id="statChecked">0</div>
+        <div class="stat-card-desc">Total refs marked as checked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-label">Status</span>
+          <div class="stat-card-icon purple"><span class="material-icons-outlined">auto_awesome</span></div>
+        </div>
+        <div class="stat-card-value" id="statStatus" style="font-size:16px;padding-top:6px">IDLE</div>
+        <div class="stat-card-desc">Orchestrator state</div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Controls</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="status-dot idle" id="statusDot"></div>
+          <span style="font-size:12px;font-weight:600;color:var(--text-sec)" id="statusText">Idle</span>
+        </div>
+      </div>
+      <div class="controls-row">
+        <!-- Date Range -->
+        <div class="control-group">
+          <span class="control-label">From</span>
+          <input type="date" class="date-input" id="dateStart">
+        </div>
+        <div class="control-group">
+          <span class="control-label">To</span>
+          <input type="date" class="date-input" id="dateEnd">
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- AI Comparison Toggle -->
+        <div class="control-group">
+          <span class="control-label">AI Compare</span>
+          <label class="toggle">
+            <input type="checkbox" id="toggleAI" onchange="saveSettings()">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="control-value" id="labelAI">OFF</span>
+        </div>
+
+        <div class="separator"></div>
+
+        <!-- No Doc Toggle -->
+        <div class="control-group">
+          <span class="control-label">No Doc Mode</span>
+          <label class="toggle">
+            <input type="checkbox" id="toggleNoDoc" onchange="saveSettings()">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="control-value" id="labelNoDoc">OFF</span>
+        </div>
+
+        <div style="flex:1"></div>
+
+        <!-- Action Buttons -->
+        <button class="btn btn-primary" id="btnStart" onclick="startOrchestrator()">
+          <span class="material-icons-outlined" style="font-size:16px">play_arrow</span> Start
+        </button>
+        <button class="btn btn-danger" id="btnCancel" onclick="cancelOrchestrator()" style="display:none">
+          <span class="material-icons-outlined" style="font-size:16px">stop</span> Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- ACTIVITY LOG -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Activity Log</span>
+        <span class="section-badge" id="logCount">0</span>
+      </div>
+      <div class="log-list" id="logList">
+        <div class="empty-msg">Click Start to begin processing. Logs appear here.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML }
+
+    // ── Settings ──
+    async function loadSettings() {
+      try {
+        const r = await fetch('/api/settings'); const d = await r.json();
+        document.getElementById('toggleAI').checked = !!d.ai_comparison;
+        document.getElementById('toggleNoDoc').checked = !!d.no_doc_mode;
+        document.getElementById('labelAI').textContent = d.ai_comparison ? 'ON' : 'OFF';
+        document.getElementById('labelAI').style.color = d.ai_comparison ? 'var(--neon)' : 'var(--text-sec)';
+        document.getElementById('labelNoDoc').textContent = d.no_doc_mode ? 'ON' : 'OFF';
+        document.getElementById('labelNoDoc').style.color = d.no_doc_mode ? 'var(--neon)' : 'var(--text-sec)';
+        if (d.date_start) document.getElementById('dateStart').value = d.date_start;
+        if (d.date_end) document.getElementById('dateEnd').value = d.date_end;
+      } catch (e) { console.error(e) }
+    }
+
+    async function saveSettings() {
+      const ai = document.getElementById('toggleAI').checked;
+      const noDoc = document.getElementById('toggleNoDoc').checked;
+      const ds = document.getElementById('dateStart').value || null;
+      const de = document.getElementById('dateEnd').value || null;
+      document.getElementById('labelAI').textContent = ai ? 'ON' : 'OFF';
+      document.getElementById('labelAI').style.color = ai ? 'var(--neon)' : 'var(--text-sec)';
+      document.getElementById('labelNoDoc').textContent = noDoc ? 'ON' : 'OFF';
+      document.getElementById('labelNoDoc').style.color = noDoc ? 'var(--neon)' : 'var(--text-sec)';
+      try {
+        await fetch('/api/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ai_comparison: ai, no_doc_mode: noDoc, date_start: ds, date_end: de })
+        });
+      } catch (e) { console.error(e) }
+    }
+
+    // ── Orchestrator ──
+    async function startOrchestrator() {
+      await saveSettings();
+      document.getElementById('btnStart').disabled = true;
+      try {
+        await fetch('/api/orchestrator/start', { method: 'POST' });
+        startPolling();
+      } catch (e) { console.error(e); document.getElementById('btnStart').disabled = false }
+    }
+
+    async function cancelOrchestrator() {
+      try { await fetch('/api/orchestrator/cancel', { method: 'POST' }) } catch (e) { console.error(e) }
+    }
+
+    // ── Polling ──
+    let pollId = null;
+    function startPolling() {
+      if (pollId) return;
+      pollId = setInterval(pollStatus, 2000);
+      pollStatus();
+    }
+    function stopPolling() {
+      if (pollId) { clearInterval(pollId); pollId = null }
+    }
+
+    async function pollStatus() {
+      try {
+        const r = await fetch('/api/orchestrator/status');
+        const d = await r.json();
+        const running = d.is_running;
+        const status = d.status || 'Idle';
+        const stats = d.stats || {};
+        const logs = d.logs || [];
+
+        // Stats
+        document.getElementById('statProcessed').textContent = stats.processed || 0;
+        document.getElementById('statNoDoc').textContent = stats.no_doc || 0;
+        document.getElementById('statChecked').textContent = stats.checked || 0;
+        document.getElementById('statStatus').textContent = status.toUpperCase();
+
+        // Status dot
+        const dot = document.getElementById('statusDot');
+        const stxt = document.getElementById('statusText');
+        dot.className = 'status-dot ' + (running ? (status === 'Cancelling' ? 'cancelling' : 'running') : 'idle');
+        stxt.textContent = status;
+
+        // Buttons
+        document.getElementById('btnStart').style.display = running ? 'none' : '';
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnCancel').style.display = running ? '' : 'none';
+
+        // Logs
+        document.getElementById('logCount').textContent = logs.length;
+        if (logs.length > 0) {
+          const html = logs.slice().reverse().slice(0, 200).map(l => {
+            const isErr = l.includes('error') || l.includes('Error') || l.includes('failed');
+            const isOk = l.includes('processed') || l.includes('complete') || l.includes('done');
+            const isWarn = l.includes('No doc') || l.includes('Skipping') || l.includes('timeout');
+            const cls = isErr ? 'error' : isOk ? 'success' : isWarn ? 'warn' : 'default';
+            // Extract time from "[HH:MM:SS] msg" format
+            const match = l.match(/^\[(\d{2}:\d{2}:\d{2})\]\s*(.*)/);
+            const time = match ? match[1] : '';
+            const msg = match ? match[2] : l;
+            return `<div class="log-item"><div class="log-dot ${cls}"></div><div class="log-content"><div class="log-detail" style="white-space:normal">${esc(msg)}</div></div><span class="log-time">${esc(time)}</span></div>`;
+          }).join('');
+          document.getElementById('logList').innerHTML = html;
+        }
+
+        if (!running) stopPolling();
+      } catch (e) { console.error(e) }
+    }
+
+    // ── Date inputs trigger save ──
+    document.getElementById('dateStart').addEventListener('change', saveSettings);
+    document.getElementById('dateEnd').addEventListener('change', saveSettings);
+
+    // ── Init ──
+    loadSettings();
+    pollStatus();
+    setInterval(pollStatus, 5000);
+
+    // ── MFA Polling (works on dashboard too) ──
+    setInterval(async () => {
+      try {
+        const r = await fetch('/api/mfa/status'); const d = await r.json();
+        let ov = document.getElementById('mfaOverlay');
+        if (!ov) {
+          ov = document.createElement('div'); ov.id = 'mfaOverlay';
+          ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:999';
+          ov.innerHTML = '<div style="background:#fff;border-radius:16px;padding:28px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)"><h3 style="font-size:18px;font-weight:700;margin-bottom:8px">MFA Verification Required</h3><p style="font-size:13px;color:#6b7084;margin-bottom:12px">Open your Authenticator app and enter this number:</p><div id="mfaNumber" style="font-size:56px;font-weight:800;color:#4F46E5;font-family:DM Mono,monospace;margin:12px 0;padding:12px 24px;border:2px solid #e3e6ee;border-radius:12px;display:inline-block">--</div><img id="mfaImg" src="" style="display:none;max-width:100%;border-radius:8px;border:1px solid #e3e6ee;margin-top:12px"><div style="font-size:12px;color:#ea580c;font-weight:600;margin-top:10px">Waiting for approval on your phone...</div></div>';
+          document.body.appendChild(ov);
+        }
+        if (d.active) {
+          ov.style.display = 'flex';
+          if (d.number) document.getElementById('mfaNumber').textContent = d.number;
+          else document.getElementById('mfaNumber').textContent = '--';
+          if (d.screenshot_b64) { const img = document.getElementById('mfaImg'); img.src = 'data:image/png;base64,' + d.screenshot_b64; img.style.display = 'block' }
+        } else { ov.style.display = 'none' }
+      } catch (e) { }
+    }, 3000);
+  </script>
+</body>
+
+</html>
