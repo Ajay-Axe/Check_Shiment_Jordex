@@ -1062,233 +1062,967 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shipment Verification — Documents</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#f5f6fa;--white:#fff;--border:#e3e6ee;
-  --text:#1a1d26;--text-sec:#6b7084;--text-muted:#9da3b4;
-  --accent:#2563eb;--accent-light:#eff4ff;
-  --green:#16a34a;--green-light:#ecfdf5;
-  --orange:#ea580c;--orange-light:#fff7ed;
-  --red:#dc2626;--red-light:#fef2f2;
-  --purple:#7c3aed;--purple-light:#f5f3ff;
-  --amber:#d97706;--amber-light:#fffbeb;
-  --indigo:#4F46E5;--neon:#22C55E;
-}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.nav{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0}
-.nav-left{display:flex;align-items:center;gap:12px}
-.nav-logo{width:32px;height:32px;background:var(--indigo);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;font-family:'DM Mono',monospace}
-.nav-title{font-size:16px;font-weight:700}.nav-title span{color:var(--text-muted);font-weight:400;font-size:12px;margin-left:6px}
-.nav-links{display:flex;gap:4px}
-.nav-links a{padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;color:var(--text-sec);transition:all .15s}
-.nav-links a:hover{background:var(--bg);color:var(--text)}.nav-links a.active{background:var(--indigo);color:#fff}
-.layout{display:flex;flex:1;overflow:hidden}
-.sidebar{width:300px;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
-.sidebar-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.sidebar-title{font-size:14px;font-weight:600}.sidebar-count{font-size:11px;font-weight:600;background:var(--bg);color:var(--text-sec);padding:2px 8px;border-radius:12px}
-.sidebar-search{padding:10px 14px;border-bottom:1px solid var(--border)}
-.sidebar-search input{width:100%;padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)}
-.sidebar-search input:focus{border-color:var(--accent)}
-.sidebar-list{flex:1;overflow-y:auto}
-.folder-item{border-bottom:1px solid #f3f4f8;cursor:pointer;transition:background .1s}
-.folder-item:hover{background:#fafbfd}.folder-item.active{background:var(--accent-light);border-left:3px solid var(--indigo)}
-.folder-head{padding:10px 14px;display:flex;align-items:center;gap:10px}
-.folder-icon{font-size:18px;color:var(--text-muted);flex-shrink:0}
-.folder-info{flex:1;min-width:0}.folder-ref{font-size:12px;font-weight:700;font-family:'DM Mono',monospace}.folder-date{font-size:10px;color:var(--text-muted)}
-.folder-badges{display:flex;gap:4px;flex-shrink:0}
-.pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700}
-.pill.match{background:var(--green-light);color:var(--green)}.pill.mismatch{background:var(--red-light);color:var(--red)}.pill.nocomp{background:var(--bg);color:var(--text-muted)}
-.folder-files{display:none;padding:2px 14px 8px 42px}.folder-item.expanded .folder-files{display:block}
-.file-section-label{font-size:8px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:5px 0 1px 0}
-.file-link{display:flex;align-items:center;gap:5px;padding:3px 7px;border-radius:4px;font-size:10px;color:var(--text-sec);cursor:pointer;transition:background .1s}
-.file-link:hover{background:var(--accent-light);color:var(--accent)}
-.file-link .material-icons-outlined{font-size:13px}
-.main-panel{flex:1;overflow-y:auto;padding:20px 24px}
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted)}
-.empty-state .material-icons-outlined{font-size:48px;margin-bottom:12px;opacity:.4}.empty-state p{font-size:14px}
-/* Split viewer */
-.doc-viewer{display:flex;gap:0;height:calc(100vh - 62px);border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--white)}
-.doc-left{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);min-width:0}
-.doc-right{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.doc-header{padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.doc-header-title{font-size:12px;font-weight:700;color:var(--text-sec);display:flex;align-items:center;gap:6px}
-.doc-header-title .material-icons-outlined{font-size:15px;color:var(--indigo)}
-.doc-body{flex:1;overflow-y:auto;min-height:0}
-.doc-body object{width:100%;height:100%;border:none}.doc-body img{width:100%;height:auto;display:block}
-.back-btn{cursor:pointer;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--indigo);padding:3px 8px;border-radius:4px;transition:all .1s;border:none;background:none}
-.back-btn:hover{background:var(--accent-light)}
-/* Extraction cards */
-.ext-card{margin:12px;background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.ext-card-header{padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sec);display:flex;align-items:center;gap:6px}
-.ext-card-header .material-icons-outlined{font-size:14px;color:var(--indigo)}
-.ext-row{display:flex;padding:7px 14px;border-bottom:1px solid #f3f4f8;font-size:11px;gap:8px}.ext-row:last-child{border-bottom:none}
-.ext-label{width:130px;flex-shrink:0;font-weight:600;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding-top:1px}
-.ext-value{flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--text);white-space:pre-wrap;word-break:break-word;line-height:1.5}
-.cnt-card{margin:8px 12px;border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.cnt-header{padding:7px 12px;background:var(--accent-light);font-size:11px;font-weight:700;color:var(--indigo);display:flex;align-items:center;gap:5px}
-.cnt-header .material-icons-outlined{font-size:13px}
-/* Comparison tables */
-.comp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
-.comp-ref{font-size:18px;font-weight:700;font-family:'DM Mono',monospace}.comp-date{font-size:12px;color:var(--text-muted)}
-.comp-actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s;font-family:'DM Sans',sans-serif}
-.btn-primary{background:var(--indigo);color:#fff}.btn-primary:hover{background:#4338ca}
-.btn-green{background:var(--neon);color:#fff}.btn-green:hover{background:#16a34a}
-.btn-amber{background:var(--amber);color:#fff}.btn-amber:hover{background:#b45309}
-.btn-outline{background:none;border:1px solid var(--border);color:var(--text-sec)}.btn-outline:hover{background:var(--bg)}
-.btn:disabled{opacity:.5;cursor:not-allowed}.btn-sm{padding:5px 12px;font-size:12px}
-.comp-section{background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
-.comp-section-header{padding:10px 14px;background:#fafbfd;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.comp-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-sec)}
-.comp-section-icon{font-size:15px;color:var(--indigo)}
-.comp-section-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
-.comp-table{width:100%;border-collapse:collapse}
-.comp-table th{text-align:left;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:7px 10px;border-bottom:1px solid var(--border);background:#fafbfd}
-.comp-table td{padding:7px 10px;font-size:11px;border-bottom:1px solid #f3f4f8;vertical-align:top}
-.comp-table tr:hover td{background:#fafbfd}
-.comp-table .fn{font-weight:600;color:var(--text-sec);font-size:10px;width:130px}
-.comp-table .val{font-family:'DM Mono',monospace;font-size:10px;max-width:220px;white-space:pre-wrap;word-break:break-word}
-.comp-table .val:hover{white-space:pre-wrap;word-break:break-word}
-.comp-table .val-edit{font-family:'DM Mono',monospace;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;width:100%;outline:none}
-.comp-table .val-edit:focus{border-color:var(--accent)}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.3px}
-.badge.MATCH{background:var(--green-light);color:var(--green)}
-.badge.ADDED{background:var(--accent-light);color:var(--accent)}
-.badge.MISMATCH{background:var(--red-light);color:var(--red)}
-.badge.UPDATED{background:var(--amber-light);color:var(--amber)}
-.cb-cell{width:28px;text-align:center}.cb-cell input{width:13px;height:13px;cursor:pointer;accent-color:var(--indigo)}
-.container-row td{background:var(--accent-light);font-weight:700;color:var(--indigo);font-size:11px;padding:5px 10px}
-/* MFA Popup */
-.mfa-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:999}
-.mfa-overlay.show{display:flex}
-.mfa-popup{background:var(--white);border-radius:16px;padding:28px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-.mfa-popup h3{font-size:18px;font-weight:700;margin-bottom:8px}.mfa-popup p{font-size:13px;color:var(--text-sec);margin-bottom:12px}
-.mfa-number{font-size:56px;font-weight:800;color:var(--indigo);font-family:'DM Mono',monospace;margin:12px 0;padding:12px 24px;border:2px solid var(--border);border-radius:12px;display:inline-block}
-.mfa-screenshot{max-width:100%;border-radius:8px;border:1px solid var(--border);margin-top:12px}
-.mfa-waiting{font-size:12px;color:var(--orange);font-weight:600;margin-top:10px}
-/* Toast */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 20px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:none;z-index:200;max-width:360px}
-.toast.show{display:block;animation:slideUp .3s ease}
-@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.toast-title{font-size:13px;font-weight:700;margin-bottom:4px}.toast-msg{font-size:12px;color:var(--text-sec)}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipment Verification — Documents</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    :root {
+      --bg: #f5f6fa;
+      --white: #fff;
+      --border: #e3e6ee;
+      --text: #1a1d26;
+      --text-sec: #6b7084;
+      --text-muted: #9da3b4;
+      --accent: #2563eb;
+      --accent-light: #eff4ff;
+      --green: #16a34a;
+      --green-light: #ecfdf5;
+      --orange: #ea580c;
+      --orange-light: #fff7ed;
+      --red: #dc2626;
+      --red-light: #fef2f2;
+      --purple: #7c3aed;
+      --purple-light: #f5f3ff;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+      --indigo: #4F46E5;
+      --neon: #22C55E;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .nav-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--indigo);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace
+    }
+
+    .nav-title {
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .nav-title span {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 12px;
+      margin-left: 6px
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px
+    }
+
+    .nav-links a {
+      padding: 6px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-sec);
+      transition: all .15s
+    }
+
+    .nav-links a:hover {
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    .nav-links a.active {
+      background: var(--indigo);
+      color: #fff
+    }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden
+    }
+
+    .sidebar {
+      width: 300px;
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0
+    }
+
+    .sidebar-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 600
+    }
+
+    .sidebar-count {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg);
+      color: var(--text-sec);
+      padding: 2px 8px;
+      border-radius: 12px
+    }
+
+    .sidebar-search {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .sidebar-search input {
+      width: 100%;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      color: var(--text)
+    }
+
+    .sidebar-search input:focus {
+      border-color: var(--accent)
+    }
+
+    .sidebar-list {
+      flex: 1;
+      overflow-y: auto
+    }
+
+    .folder-item {
+      border-bottom: 1px solid #f3f4f8;
+      cursor: pointer;
+      transition: background .1s
+    }
+
+    .folder-item:hover {
+      background: #fafbfd
+    }
+
+    .folder-item.active {
+      background: var(--accent-light);
+      border-left: 3px solid var(--indigo)
+    }
+
+    .folder-head {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .folder-icon {
+      font-size: 18px;
+      color: var(--text-muted);
+      flex-shrink: 0
+    }
+
+    .folder-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .folder-ref {
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace
+    }
+
+    .folder-date {
+      font-size: 10px;
+      color: var(--text-muted)
+    }
+
+    .folder-badges {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700
+    }
+
+    .pill.match {
+      background: var(--green-light);
+      color: var(--green)
+    }
+
+    .pill.mismatch {
+      background: var(--red-light);
+      color: var(--red)
+    }
+
+    .pill.nocomp {
+      background: var(--bg);
+      color: var(--text-muted)
+    }
+
+    .folder-files {
+      display: none;
+      padding: 2px 14px 8px 42px
+    }
+
+    .folder-item.expanded .folder-files {
+      display: block
+    }
+
+    .file-section-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 5px 0 1px 0
+    }
+
+    .file-link {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      color: var(--text-sec);
+      cursor: pointer;
+      transition: background .1s
+    }
+
+    .file-link:hover {
+      background: var(--accent-light);
+      color: var(--accent)
+    }
+
+    .file-link .material-icons-outlined {
+      font-size: 13px
+    }
+
+    .main-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted)
+    }
+
+    .empty-state .material-icons-outlined {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: .4
+    }
+
+    .empty-state p {
+      font-size: 14px
+    }
+
+    /* Split viewer */
+    .doc-viewer {
+      display: flex;
+      gap: 0;
+      height: calc(100vh - 62px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--white)
+    }
+
+    .doc-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      min-width: 0
+    }
+
+    .doc-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden
+    }
+
+    .doc-header {
+      padding: 10px 14px;
+      background: #fafbfd;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0
+    }
+
+    .doc-header-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .doc-header-title .material-icons-outlined {
+      font-size: 15px;
+      color: var(--indigo)
+    }
+
+    .doc-body {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0
+    }
+
+    .doc-body object {
+      width: 100%;
+      height: 100%;
+      border: none
+    }
+
+    .doc-body img {
+      width: 100%;
+      height: auto;
+      display: block
+    }
+
+    .back-btn {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--indigo);
+      padding: 3px 8px;
+      border-radius: 4px;
+      transition: all .1s;
+      border: none;
+      background: none
+    }
+
+    .back-btn:hover {
+      background: var(--accent-light)
+    }
+
+    /* Extraction cards */
+    .ext-card {
+      margin: 12px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden
+    }
+
+    .ext-card-header {
+      padding: 10px 14px;
+      background: #fafbfd;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .ext-card-header .material-icons-outlined {
+      font-size: 14px;
+      color: var(--indigo)
+    }
+
+    .ext-row {
+      display: flex;
+      padding: 7px 14px;
+      border-bottom: 1px solid #f3f4f8;
+      font-size: 11px;
+      gap: 8px
+    }
+
+    .ext-row:last-child {
+      border-bottom: none
+    }
+
+    .ext-label {
+      width: 130px;
+      flex-shrink: 0;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      padding-top: 1px
+    }
+
+    .ext-value {
+      flex: 1;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5
+    }
+
+    .cnt-card {
+      margin: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden
+    }
+
+    .cnt-header {
+      padding: 7px 12px;
+      background: var(--accent-light);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--indigo);
+      display: flex;
+      align-items: center;
+      gap: 5px
+    }
+
+    .cnt-header .material-icons-outlined {
+      font-size: 13px
+    }
+
+    /* Comparison tables */
+    .comp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+
+    .comp-ref {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace
+    }
+
+    .comp-date {
+      font-size: 12px;
+      color: var(--text-muted)
+    }
+
+    .comp-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s;
+      font-family: 'DM Sans', sans-serif
+    }
+
+    .btn-primary {
+      background: var(--indigo);
+      color: #fff
+    }
+
+    .btn-primary:hover {
+      background: #4338ca
+    }
+
+    .btn-green {
+      background: var(--neon);
+      color: #fff
+    }
+
+    .btn-green:hover {
+      background: #16a34a
+    }
+
+    .btn-amber {
+      background: var(--amber);
+      color: #fff
+    }
+
+    .btn-amber:hover {
+      background: #b45309
+    }
+
+    .btn-outline {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-sec)
+    }
+
+    .btn-outline:hover {
+      background: var(--bg)
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 12px
+    }
+
+    .comp-section {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden
+    }
+
+    .comp-section-header {
+      padding: 10px 14px;
+      background: #fafbfd;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .comp-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-sec)
+    }
+
+    .comp-section-icon {
+      font-size: 15px;
+      color: var(--indigo)
+    }
+
+    .comp-section-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    .comp-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      background: #fafbfd
+    }
+
+    .comp-table td {
+      padding: 7px 10px;
+      font-size: 11px;
+      border-bottom: 1px solid #f3f4f8;
+      vertical-align: top
+    }
+
+    .comp-table tr:hover td {
+      background: #fafbfd
+    }
+
+    .comp-table .fn {
+      font-weight: 600;
+      color: var(--text-sec);
+      font-size: 10px;
+      width: 130px
+    }
+
+    .comp-table .val {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      max-width: 220px;
+      white-space: pre-wrap;
+      word-break: break-word
+    }
+
+    .comp-table .val:hover {
+      white-space: pre-wrap;
+      word-break: break-word
+    }
+
+    .comp-table .val-edit {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      width: 100%;
+      outline: none
+    }
+
+    .comp-table .val-edit:focus {
+      border-color: var(--accent)
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .3px
+    }
+
+    .badge.MATCH {
+      background: var(--green-light);
+      color: var(--green)
+    }
+
+    .badge.ADDED {
+      background: var(--accent-light);
+      color: var(--accent)
+    }
+
+    .badge.MISMATCH {
+      background: var(--red-light);
+      color: var(--red)
+    }
+
+    .badge.UPDATED {
+      background: var(--amber-light);
+      color: var(--amber)
+    }
+
+    .cb-cell {
+      width: 28px;
+      text-align: center
+    }
+
+    .cb-cell input {
+      width: 13px;
+      height: 13px;
+      cursor: pointer;
+      accent-color: var(--indigo)
+    }
+
+    .container-row td {
+      background: var(--accent-light);
+      font-weight: 700;
+      color: var(--indigo);
+      font-size: 11px;
+      padding: 5px 10px
+    }
+
+    /* MFA Popup */
+    .mfa-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999
+    }
+
+    .mfa-overlay.show {
+      display: flex
+    }
+
+    .mfa-popup {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .3)
+    }
+
+    .mfa-popup h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px
+    }
+
+    .mfa-popup p {
+      font-size: 13px;
+      color: var(--text-sec);
+      margin-bottom: 12px
+    }
+
+    .mfa-number {
+      font-size: 56px;
+      font-weight: 800;
+      color: var(--indigo);
+      font-family: 'DM Mono', monospace;
+      margin: 12px 0;
+      padding: 12px 24px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      display: inline-block
+    }
+
+    .mfa-screenshot {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-top: 12px
+    }
+
+    .mfa-waiting {
+      font-size: 12px;
+      color: var(--orange);
+      font-weight: 600;
+      margin-top: 10px
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+      display: none;
+      z-index: 200;
+      max-width: 360px
+    }
+
+    .toast.show {
+      display: block;
+      animation: slideUp .3s ease
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1
+      }
+    }
+
+    .toast-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px
+    }
+
+    .toast-msg {
+      font-size: 12px;
+      color: var(--text-sec)
+    }
+  </style>
 </head>
+
 <body>
-<div class="nav">
-  <div class="nav-left"><div class="nav-logo">AX</div><div class="nav-title">Shipment Verification<span>v5.0</span></div></div>
-  <div class="nav-links"><a href="/">Dashboard</a><a href="/documents" class="active">Documents</a><a href="/carrier">Carrier Portal</a></div>
-</div>
-<div class="layout">
-  <div class="sidebar">
-    <div class="sidebar-header"><span class="sidebar-title">Shipments</span><span class="sidebar-count" id="sidebarCount">0</span></div>
-    <div class="sidebar-search"><input type="text" placeholder="Search ref or date..." id="searchInput" oninput="renderSidebar()"></div>
-    <div class="sidebar-list" id="sidebarList"><div class="empty-state" style="padding:40px"><p>Loading...</p></div></div>
-    
-    <div class="sidebar-header" style="cursor:pointer; border-top:1px solid var(--border);" onclick="toggleOldDocs()">
-      <span class="sidebar-title" style="color:var(--orange);">OLD Files</span>
-      <span class="sidebar-count" id="oldDocCount" style="background:var(--amber-light);color:var(--amber);">0</span>
-      <span class="material-icons-outlined" id="oldDocIcon" style="font-size:16px;color:var(--text-sec);margin-left:auto;">expand_more</span>
+  <div class="nav">
+    <div class="nav-left">
+      <div class="nav-logo">AX</div>
+      <div class="nav-title">Shipment Verification<span>v5.0</span></div>
     </div>
-    <div class="sidebar-list" id="oldDocList" style="display:none; max-height: 200px; border-bottom:1px solid var(--border);"></div>
-    
-    <div class="sidebar-header" style="cursor:pointer; border-top:1px solid var(--border);" onclick="toggleQueue()">
-      <span class="sidebar-title" style="color:var(--purple);">QUEUE</span>
-      <span class="sidebar-count" id="queueCount" style="background:var(--purple-light);color:var(--purple);">0</span>
-      <span class="material-icons-outlined" id="queueIcon" style="font-size:16px;color:var(--text-sec);margin-left:auto;">expand_more</span>
+    <div class="nav-links"><a href="/">Dashboard</a><a href="/documents" class="active">Documents</a><a
+        href="/carrier">Carrier Portal</a></div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-header"><span class="sidebar-title">Shipments</span><span class="sidebar-count"
+          id="sidebarCount">0</span></div>
+      <div class="sidebar-search"><input type="text" placeholder="Search ref or date..." id="searchInput"
+          oninput="renderSidebar()"></div>
+      <div class="sidebar-list" id="sidebarList">
+        <div class="empty-state" style="padding:40px">
+          <p>Loading...</p>
+        </div>
+      </div>
+
+      <div class="sidebar-header" style="cursor:pointer; border-top:1px solid var(--border);" onclick="toggleOldDocs()">
+        <span class="sidebar-title" style="color:var(--orange);">OLD Files</span>
+        <span class="sidebar-count" id="oldDocCount" style="background:var(--amber-light);color:var(--amber);">0</span>
+        <span class="material-icons-outlined" id="oldDocIcon"
+          style="font-size:16px;color:var(--text-sec);margin-left:auto;">expand_more</span>
+      </div>
+      <div class="sidebar-list" id="oldDocList"
+        style="display:none; max-height: 200px; border-bottom:1px solid var(--border);"></div>
+
+      <div class="sidebar-header" style="cursor:pointer; border-top:1px solid var(--border);" onclick="toggleQueue()">
+        <span class="sidebar-title" style="color:var(--purple);">QUEUE</span>
+        <span class="sidebar-count" id="queueCount" style="background:var(--purple-light);color:var(--purple);">0</span>
+        <span class="material-icons-outlined" id="queueIcon"
+          style="font-size:16px;color:var(--text-sec);margin-left:auto;">expand_more</span>
+      </div>
+      <div class="sidebar-list" id="queueList"
+        style="display:none; max-height: 200px; border-bottom:1px solid var(--border);"></div>
     </div>
-    <div class="sidebar-list" id="queueList" style="display:none; max-height: 200px; border-bottom:1px solid var(--border);"></div>
+    <div class="main-panel" id="mainPanel">
+      <div class="empty-state"><span class="material-icons-outlined">description</span>
+        <p>Select a shipment to view comparison results</p>
+      </div>
+    </div>
   </div>
-  <div class="main-panel" id="mainPanel">
-    <div class="empty-state"><span class="material-icons-outlined">description</span><p>Select a shipment to view comparison results</p></div>
+  <!-- MFA POPUP (polls on every page) -->
+  <div class="mfa-overlay" id="mfaOverlay">
+    <div class="mfa-popup">
+      <h3>MFA Verification Required</h3>
+      <p>Open your Authenticator app and enter this number:</p>
+      <div class="mfa-number" id="mfaNumber">--</div>
+      <img class="mfa-screenshot" id="mfaImg" src="" alt="MFA" style="display:none">
+      <div class="mfa-waiting">Waiting for approval on your phone...</div>
+    </div>
   </div>
-</div>
-<!-- MFA POPUP (polls on every page) -->
-<div class="mfa-overlay" id="mfaOverlay">
-  <div class="mfa-popup">
-    <h3>MFA Verification Required</h3>
-    <p>Open your Authenticator app and enter this number:</p>
-    <div class="mfa-number" id="mfaNumber">--</div>
-    <img class="mfa-screenshot" id="mfaImg" src="" alt="MFA" style="display:none">
-    <div class="mfa-waiting">Waiting for approval on your phone...</div>
+  <div class="toast" id="toast">
+    <div class="toast-title" id="toastTitle"></div>
+    <div class="toast-msg" id="toastMsg"></div>
   </div>
-</div>
-<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
 
-<script>
-function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
-let allShipments=[], oldDocItems=[], currentFolder=null, currentFiles=[], editMode=false, currentComp=null, queueData={};
+  <script>
+    function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML }
+    let allShipments = [], oldDocItems = [], currentFolder = null, currentFiles = [], editMode = false, currentComp = null, queueData = {};
 
-// ═══════ MFA POLLING (works on any page) ═══════
-setInterval(async()=>{
-  try{
-    const r=await fetch('/api/mfa/status');const d=await r.json();
-    const ov=document.getElementById('mfaOverlay');
-    if(d.active){
-      ov.classList.add('show');
-      if(d.number)document.getElementById('mfaNumber').textContent=d.number;
-      else document.getElementById('mfaNumber').textContent='--';
-      if(d.screenshot_b64){const img=document.getElementById('mfaImg');img.src='data:image/png;base64,'+d.screenshot_b64;img.style.display='block'}
-    }else{ov.classList.remove('show')}
-  }catch(e){}
-},3000);
+    // ═══════ MFA POLLING (works on any page) ═══════
+    setInterval(async () => {
+      try {
+        const r = await fetch('/api/mfa/status'); const d = await r.json();
+        const ov = document.getElementById('mfaOverlay');
+        if (d.active) {
+          ov.classList.add('show');
+          if (d.number) document.getElementById('mfaNumber').textContent = d.number;
+          else document.getElementById('mfaNumber').textContent = '--';
+          if (d.screenshot_b64) { const img = document.getElementById('mfaImg'); img.src = 'data:image/png;base64,' + d.screenshot_b64; img.style.display = 'block' }
+        } else { ov.classList.remove('show') }
+      } catch (e) { }
+    }, 3000);
 
-// ═══════ SIDEBAR ═══════
-async function loadShipments(){
-  try{
-    const [r1, r2, r3] = await Promise.all([
-      fetch('/api/shipments'),
-      fetch('/api/old-doc-items'),
-      fetch('/api/queue')
-    ]);
-    const d1 = await r1.json();
-    const d2 = await r2.json();
-    queueData = await r3.json();
-    allShipments=d1.shipments||[];
-    oldDocItems=d2.items||[];
-    document.getElementById('sidebarCount').textContent=allShipments.length;
-    renderSidebar();
-    renderOldDocSidebar();
-    renderQueueSidebar();
-  }catch(e){console.error(e)}
-}
+    // ═══════ SIDEBAR ═══════
+    async function loadShipments() {
+      try {
+        const [r1, r2, r3] = await Promise.all([
+          fetch('/api/shipments'),
+          fetch('/api/old-doc-items'),
+          fetch('/api/queue')
+        ]);
+        const d1 = await r1.json();
+        const d2 = await r2.json();
+        queueData = await r3.json();
+        allShipments = d1.shipments || [];
+        oldDocItems = d2.items || [];
+        document.getElementById('sidebarCount').textContent = allShipments.length;
+        renderSidebar();
+        renderOldDocSidebar();
+        renderQueueSidebar();
+      } catch (e) { console.error(e) }
+    }
 
-function toggleOldDocs() {
-  const el = document.getElementById('oldDocList');
-  const icon = document.getElementById('oldDocIcon');
-  if (el.style.display === 'none') {
-    el.style.display = 'block';
-    icon.textContent = 'expand_less';
-    renderOldDocPanel(); // Show right panel automatically
-  } else {
-    el.style.display = 'none';
-    icon.textContent = 'expand_more';
-  }
-}
+    function toggleOldDocs() {
+      const el = document.getElementById('oldDocList');
+      const icon = document.getElementById('oldDocIcon');
+      if (el.style.display === 'none') {
+        el.style.display = 'block';
+        icon.textContent = 'expand_less';
+        renderOldDocPanel(); // Show right panel automatically
+      } else {
+        el.style.display = 'none';
+        icon.textContent = 'expand_more';
+      }
+    }
 
-function renderOldDocSidebar() {
-  document.getElementById('oldDocCount').textContent = oldDocItems.length;
-  if (!oldDocItems.length) {
-    document.getElementById('oldDocList').innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--text-sec);">No old files</div>';
-    return;
-  }
-  document.getElementById('oldDocList').innerHTML = oldDocItems.map(item => {
-    return `<div style="padding:8px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border-light);" onclick="renderOldDocPanel()">${esc(item.ref)}</div>`;
-  }).join('');
-}
+    function renderOldDocSidebar() {
+      document.getElementById('oldDocCount').textContent = oldDocItems.length;
+      if (!oldDocItems.length) {
+        document.getElementById('oldDocList').innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--text-sec);">No old files</div>';
+        return;
+      }
+      document.getElementById('oldDocList').innerHTML = oldDocItems.map(item => {
+        return `<div style="padding:8px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border-light);" onclick="renderOldDocPanel()">${esc(item.ref)}</div>`;
+      }).join('');
+    }
 
-function renderOldDocPanel() {
-  currentFolder = null; // deselect shipment
-  renderSidebar(); // remove active state from standard list
-  
-  if (!oldDocItems.length) {
-    document.getElementById('mainPanel').innerHTML = `
+    function renderOldDocPanel() {
+      currentFolder = null; // deselect shipment
+      renderSidebar(); // remove active state from standard list
+
+      if (!oldDocItems.length) {
+        document.getElementById('mainPanel').innerHTML = `
       <div style="padding:24px; max-width: 900px; margin: 0 auto;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
               <div>
@@ -1298,38 +2032,38 @@ function renderOldDocPanel() {
           </div>
           <div class="empty-state"><span class="material-icons-outlined">inbox</span><p>No OLD files pending</p></div>
       </div>`;
-    return;
-  }
-  
-  const submittedItems = oldDocItems.filter(i => i.status === 'completed_old_doc_support');
-  const pendingItems = oldDocItems.filter(i => i.status !== 'completed_old_doc_support');
+        return;
+      }
 
-  function groupByDate(items) {
-      const groups = {};
-      items.forEach(i => {
+      const submittedItems = oldDocItems.filter(i => i.status === 'completed_old_doc_support');
+      const pendingItems = oldDocItems.filter(i => i.status !== 'completed_old_doc_support');
+
+      function groupByDate(items) {
+        const groups = {};
+        items.forEach(i => {
           if (!groups[i.date]) groups[i.date] = [];
           groups[i.date].push(i);
-      });
-      return groups;
-  }
-  const submittedGroups = groupByDate(submittedItems);
-  const pendingGroups = groupByDate(pendingItems);
+        });
+        return groups;
+      }
+      const submittedGroups = groupByDate(submittedItems);
+      const pendingGroups = groupByDate(pendingItems);
 
-  function renderGroup(groups, isSubmitted) {
-      if (Object.keys(groups).length === 0) return '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">No items</div>';
-      
-      return Object.keys(groups).sort((a,b)=> new Date(b) - new Date(a)).map(date => {
+      function renderGroup(groups, isSubmitted) {
+        if (Object.keys(groups).length === 0) return '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px;">No items</div>';
+
+        return Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)).map(date => {
           const items = groups[date];
           let rows = items.map(item => {
-              let statusBadge = isSubmitted 
-                ? '<span class="pill match" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;">Submitted</span>'
-                : '<span class="pill nocomp" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;background:var(--amber-light);color:var(--amber);">Pending</span>';
-              
-              let checkbox = isSubmitted
-                ? `<input type="checkbox" disabled>`
-                : `<input type="checkbox" class="old-doc-cb" value="${esc(item.folder)}" checked style="cursor:pointer;">`;
-                
-              return `<tr style="border-bottom:1px solid var(--border-light);background:var(--white);">
+            let statusBadge = isSubmitted
+              ? '<span class="pill match" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;">Submitted</span>'
+              : '<span class="pill nocomp" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;background:var(--amber-light);color:var(--amber);">Pending</span>';
+
+            let checkbox = isSubmitted
+              ? `<input type="checkbox" disabled>`
+              : `<input type="checkbox" class="old-doc-cb" value="${esc(item.folder)}" checked style="cursor:pointer;">`;
+
+            return `<tr style="border-bottom:1px solid var(--border-light);background:var(--white);">
                 <td style="padding:12px;text-align:center;">${checkbox}</td>
                 <td style="padding:12px;font-size:12px;font-weight:600;">${esc(item.ref)}</td>
                 <td style="padding:12px;font-size:12px;color:var(--text-sec);">${esc(item.comment)}</td>
@@ -1338,7 +2072,7 @@ function renderOldDocPanel() {
           }).join('');
 
           const dateId = 'date-' + date.replace(/[^a-zA-Z0-9]/g, '-');
-          
+
           return `
           <div style="border:1px solid var(--border); border-radius:8px; margin-bottom:12px; overflow:hidden;">
             <div style="background:var(--bg); padding:10px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);" onclick="const el=document.getElementById('${dateId}'); el.style.display=el.style.display==='none'?'block':'none'; this.querySelector('.material-icons-outlined').textContent=el.style.display==='none'?'expand_more':'expand_less';">
@@ -1361,12 +2095,12 @@ function renderOldDocPanel() {
                 </table>
             </div>
           </div>`;
-      }).join('');
-  }
+        }).join('');
+      }
 
-  const hasPending = pendingItems.length > 0;
-  
-  document.getElementById('mainPanel').innerHTML = `
+      const hasPending = pendingItems.length > 0;
+
+      document.getElementById('mainPanel').innerHTML = `
     <div style="padding:24px; max-width: 900px; margin: 0 auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
           <div>
@@ -1407,300 +2141,320 @@ function renderOldDocPanel() {
       </div>
     </div>
   `;
-}
+    }
 
-async function refreshOldDocs() {
-    showToast('Refreshing', 'Fetching latest old files...');
-    try {
+    async function refreshOldDocs() {
+      showToast('Refreshing', 'Fetching latest old files...');
+      try {
         const r2 = await fetch('/api/old-doc-items');
         const d2 = await r2.json();
         oldDocItems = d2.items || [];
         renderOldDocSidebar();
         renderOldDocPanel();
         showToast('Success', 'Old files refreshed');
-    } catch(e) {
+      } catch (e) {
         showToast('Error', 'Failed to refresh');
-    }
-}
-
-
-async function submitSelectedOldDocs() {
-  const checkboxes = document.querySelectorAll('.old-doc-cb:checked');
-  const folders = Array.from(checkboxes).map(cb => cb.value);
-  
-  if (!folders.length) {
-    showToast("No items selected");
-    return;
-  }
-  
-  try {
-    const r = await fetch('/api/old-doc-submit-all', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({folders})
-    });
-    const d = await r.json();
-    if (d.status === 'queued') {
-      showToast("Batch submission queued");
-      document.getElementById('oldDocStatusText').innerHTML = '<span style="color:var(--orange);font-weight:600;">Processing batch...</span>';
-      pollUp('__old_doc_batch__', (status) => {
-        if (status.status === 'completed' || status.status === 'failed') {
-          document.getElementById('oldDocStatusText').innerHTML = `<span style="color:var(${status.status==='completed'?'--green':'--red'});font-weight:600;">Batch ${status.status}</span>`;
-          loadShipments(); // reload everything
-        } else {
-          document.getElementById('oldDocStatusText').innerHTML = `<span style="color:var(--orange);font-weight:600;">${esc(status.message||'Processing...')}</span>`;
-        }
-      });
-    }
-  } catch(e) {
-    console.error(e);
-    showToast("Failed to start batch process", true);
-  }
-}
-
-// ═══════ QUEUE WORKFLOW ═══════
-function isQueued(folder) {
-  return !!queueData[folder];
-}
-
-async function toggleQueueItem(folder, checkbox) {
-  if (checkbox.checked) {
-    // Collect all checked fields from comparison UI to queue
-    const fields = {};
-    document.querySelectorAll('.rcb:checked').forEach(cb => {
-      const tab = cb.dataset.tab, field = cb.dataset.field, value = cb.dataset.value, container = cb.dataset.container || '';
-      if (!value) return;
-      if (tab === 'Cargo' && container) {
-        if (!fields[tab]) fields[tab] = {};
-        if (!fields[tab][container]) fields[tab][container] = {};
-        fields[tab][container][field] = value;
-      } else {
-        if (!fields[tab]) fields[tab] = {};
-        fields[tab][field] = value;
       }
-    });
-
-    try {
-      const r = await fetch('/api/queue/add', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({folder, fields})
-      });
-      const d = await r.json();
-      queueData = d.queue;
-      renderQueueSidebar();
-      showToast("Added to Queue", "Added with selected field updates.");
-    } catch(e) {
-      console.error(e);
-      checkbox.checked = false;
-      showToast("Error", "Failed to add to queue");
     }
-  } else {
-    try {
-      const r = await fetch('/api/queue/remove', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({folder})
-      });
-      const d = await r.json();
-      queueData = d.queue;
-      renderQueueSidebar();
-      showToast("Removed", "Removed from queue.");
-    } catch(e) {
-      console.error(e);
-      checkbox.checked = true;
+
+
+    async function submitSelectedOldDocs() {
+      const checkboxes = document.querySelectorAll('.old-doc-cb:checked');
+      const folders = Array.from(checkboxes).map(cb => cb.value);
+
+      if (!folders.length) {
+        showToast("No items selected");
+        return;
+      }
+
+      try {
+        const r = await fetch('/api/old-doc-submit-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folders })
+        });
+        const d = await r.json();
+        if (d.status === 'queued') {
+          showToast("Batch submission queued");
+          document.getElementById('oldDocStatusText').innerHTML = '<span style="color:var(--orange);font-weight:600;">Processing batch...</span>';
+          pollUp('__old_doc_batch__', (status) => {
+            if (status.status === 'completed' || status.status === 'failed') {
+              document.getElementById('oldDocStatusText').innerHTML = `<span style="color:var(${status.status === 'completed' ? '--green' : '--red'});font-weight:600;">Batch ${status.status}</span>`;
+              loadShipments(); // reload everything
+            } else {
+              document.getElementById('oldDocStatusText').innerHTML = `<span style="color:var(--orange);font-weight:600;">${esc(status.message || 'Processing...')}</span>`;
+            }
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        showToast("Failed to start batch process", true);
+      }
     }
-  }
-}
 
-function toggleQueue() {
-  const el = document.getElementById('queueList');
-  const icon = document.getElementById('queueIcon');
-  if (el.style.display === 'none') {
-    el.style.display = 'block';
-    icon.textContent = 'expand_less';
-    renderQueuePanel();
-  } else {
-    el.style.display = 'none';
-    icon.textContent = 'expand_more';
-  }
-}
+    // ═══════ QUEUE WORKFLOW ═══════
+    function isQueued(folder) {
+      return !!queueData[folder];
+    }
 
-function renderQueueSidebar() {
-  const keys = Object.keys(queueData);
-  document.getElementById('queueCount').textContent = keys.length;
-  if (!keys.length) {
-    document.getElementById('queueList').innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--text-sec);">Queue is empty</div>';
-    return;
-  }
-  document.getElementById('queueList').innerHTML = keys.map(k => {
-    const s = allShipments.find(x => x.folder === k);
-    const ref = s ? s.ref : k;
-    return `<div style="padding:8px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border-light);" onclick="renderQueuePanel('${esc(k)}')">${esc(ref)}</div>`;
-  }).join('');
-}
+    async function toggleQueueItem(folder, checkbox) {
+      if (checkbox.checked) {
+        // Collect all checked fields from comparison UI to queue
+        const fields = {};
+        document.querySelectorAll('.rcb:checked').forEach(cb => {
+          const tab = cb.dataset.tab, field = cb.dataset.field, value = cb.dataset.value, container = cb.dataset.container || '';
+          if (!value) return;
+          if (tab === 'Cargo' && container) {
+            if (!fields[tab]) fields[tab] = {};
+            if (!fields[tab][container]) fields[tab][container] = {};
+            fields[tab][container][field] = value;
+          } else {
+            if (!fields[tab]) fields[tab] = {};
+            fields[tab][field] = value;
+          }
+        });
 
-function renderQueuePanel(autoSelectFolder = null) {
-  currentFolder = null; // deselect standard
-  renderSidebar(); // remove active state
-  
-  const keys = Object.keys(queueData);
-  if (!keys.length) {
-    document.getElementById('mainPanel').innerHTML = `<div class="empty-state"><span class="material-icons-outlined">queue</span><p>Queue is empty</p></div>`;
-    return;
-  }
-  
-  let h = `<div style="padding:24px; max-width:1000px; margin:0 auto;">
+        try {
+          const r = await fetch('/api/queue/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder, fields })
+          });
+          const d = await r.json();
+          queueData = d.queue;
+          renderQueueSidebar();
+          showToast("Added to Queue", "Added with selected field updates.");
+        } catch (e) {
+          console.error(e);
+          checkbox.checked = false;
+          showToast("Error", "Failed to add to queue");
+        }
+      } else {
+        try {
+          const r = await fetch('/api/queue/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder })
+          });
+          const d = await r.json();
+          queueData = d.queue;
+          renderQueueSidebar();
+          showToast("Removed", "Removed from queue.");
+        } catch (e) {
+          console.error(e);
+          checkbox.checked = true;
+        }
+      }
+    }
+
+    function toggleQueue() {
+      const el = document.getElementById('queueList');
+      const icon = document.getElementById('queueIcon');
+      if (el.style.display === 'none') {
+        el.style.display = 'block';
+        icon.textContent = 'expand_less';
+        renderQueuePanel();
+      } else {
+        el.style.display = 'none';
+        icon.textContent = 'expand_more';
+      }
+    }
+
+    function renderQueueSidebar() {
+      const keys = Object.keys(queueData);
+      document.getElementById('queueCount').textContent = keys.length;
+      if (!keys.length) {
+        document.getElementById('queueList').innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--text-sec);">Queue is empty</div>';
+        return;
+      }
+      document.getElementById('queueList').innerHTML = keys.map(k => {
+        const s = allShipments.find(x => x.folder === k);
+        const ref = s ? s.ref : k;
+        return `<div style="padding:8px 14px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border-light);" onclick="renderQueuePanel('${esc(k)}')">${esc(ref)}</div>`;
+      }).join('');
+    }
+
+    function renderQueuePanel(autoSelectFolder = null) {
+      currentFolder = null; // deselect standard
+      renderSidebar(); // remove active state
+
+      const keys = Object.keys(queueData);
+      if (!keys.length) {
+        document.getElementById('mainPanel').innerHTML = `<div class="empty-state"><span class="material-icons-outlined">queue</span><p>Queue is empty</p></div>`;
+        return;
+      }
+
+      let h = `<div style="padding:24px; max-width:1000px; margin:0 auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
       <h2 style="font-size:20px; font-weight:700; color:var(--purple); display:flex; align-items:center; gap:8px;">
         <span class="material-icons-outlined">list_alt</span> Queue (${keys.length} items)
       </h2>
       <div style="display:flex; align-items:center; gap:12px;">
         <span id="queueStatusText"></span>
-        <button class="btn btn-primary" onclick="submitQueue()"><span class="material-icons-outlined" style="font-size:16px;">send</span> Submit All</button>
+        <button class="btn btn-outline" onclick="updateQueueOnly()" style="border-color:var(--indigo);color:var(--indigo);"><span class="material-icons-outlined" style="font-size:16px;">sync</span> Update All</button>
+        <button class="btn btn-primary" onclick="submitQueue()"><span class="material-icons-outlined" style="font-size:16px;">send</span> Submit & Complete</button>
       </div>
     </div>
     
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
   `;
-  
-  keys.forEach(k => {
-    const s = allShipments.find(x => x.folder === k);
-    const ref = s ? s.ref : k;
-    const date = s ? s.date : '';
-    const isSel = currentFolder === k;
-    h += `<div class="queue-card ${isSel ? 'active' : ''}" data-folder="${esc(k)}" onclick="selectQueueItem('${esc(k)}')" style="background:#fff; border: 1px solid ${isSel ? 'var(--purple)' : 'var(--border)'}; border-radius:8px; padding:16px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s;">
+
+      keys.forEach(k => {
+        const s = allShipments.find(x => x.folder === k);
+        const ref = s ? s.ref : k;
+        const date = s ? s.date : '';
+        const isSel = currentFolder === k;
+        h += `<div class="queue-card ${isSel ? 'active' : ''}" data-folder="${esc(k)}" onclick="selectQueueItem('${esc(k)}')" style="background:#fff; border: 1px solid ${isSel ? 'var(--purple)' : 'var(--border)'}; border-radius:8px; padding:16px; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.02); transition:all 0.2s;">
       <div style="font-weight:700; color:var(--purple); font-size:14px; margin-bottom:4px;">${esc(ref)}</div>
       <div style="font-size:11px; color:var(--text-muted);"><span class="material-icons-outlined" style="font-size:12px; vertical-align:middle;">calendar_today</span> ${esc(date)}</div>
     </div>`;
-  });
-  
-  h += `</div><div id="queueCompPanel">Select a shipment card above to view its comparison.</div></div>`;
-  document.getElementById('mainPanel').innerHTML = h;
-}
-
-async function selectQueueItem(folder) {
-  currentFolder = folder;
-  
-  // Update active state manually without re-rendering everything
-  document.querySelectorAll('.queue-card').forEach(c => {
-    if(c.dataset.folder === folder) {
-      c.style.borderColor = 'var(--purple)';
-      c.classList.add('active');
-    } else {
-      c.style.borderColor = 'var(--border)';
-      c.classList.remove('active');
-    }
-  });
-  
-  const s = allShipments.find(x => x.folder === folder);
-  if (!s) return;
-  
-  try {
-    const r = await fetch('/api/shipment/'+encodeURIComponent(folder)+'/comparison');
-    const comp = await r.json();
-    
-    // Create a temporary container to render comparison
-    const temp = document.createElement('div');
-    document.getElementById('mainPanel').appendChild(temp); // temp append to access DOM
-    
-    // We override document.getElementById temporarily or just render and extract innerHTML
-    const oldHtml = document.getElementById('mainPanel').innerHTML;
-    renderComparison(s, comp);
-    const compHtml = document.getElementById('mainPanel').innerHTML;
-    
-    // Restore queue panel and inject comp Html
-    document.getElementById('mainPanel').innerHTML = oldHtml;
-    document.getElementById('queueCompPanel').innerHTML = compHtml;
-    
-    // Pre-check checkboxes based on saved queue fields
-    const savedFields = queueData[folder]?.fields || {};
-    document.getElementById('queueCompPanel').querySelectorAll('.rcb').forEach(cb => {
-      const tab = cb.dataset.tab, field = cb.dataset.field, container = cb.dataset.container || '';
-      cb.checked = false;
-      if (tab === 'Cargo' && container) {
-         if (savedFields[tab] && savedFields[tab][container] && savedFields[tab][container][field]) cb.checked = true;
-      } else {
-         if (savedFields[tab] && savedFields[tab][field]) cb.checked = true;
-      }
-    });
-    
-  } catch(e) {
-    document.getElementById('queueCompPanel').innerHTML = '<p>Error loading comparison</p>';
-  }
-}
-
-async function submitQueue() {
-  if (!Object.keys(queueData).length) return;
-  
-  try {
-    const r = await fetch('/api/queue/submit', {method: 'POST'});
-    const d = await r.json();
-    
-    if (d.status === 'queued') {
-      showToast("Submit processing...", d.message);
-      document.getElementById('queueStatusText').innerHTML = '<span style="color:var(--orange);font-weight:600;">Processing...</span>';
-      
-      // We rely on standard polling to clear them out, but we can also poll update-status of the first item
-      const firstFolder = Object.keys(queueData)[0];
-      pollUp(firstFolder, (status) => {
-         if (status.status === 'completed' || status.status === 'failed') {
-            loadShipments();
-            if (Object.keys(queueData).length > 0) renderQueuePanel();
-         }
       });
-      // Clear queue locally for immediate feedback
-      queueData = {};
-      renderQueueSidebar();
-      renderQueuePanel();
+
+      h += `</div><div id="queueCompPanel">Select a shipment card above to view its comparison.</div></div>`;
+      document.getElementById('mainPanel').innerHTML = h;
     }
-  } catch(e) {
-    showToast("Error", "Failed to submit queue");
-  }
-}
 
-function renderSidebar(){
-  const q=(document.getElementById('searchInput').value||'').toLowerCase();
-  const filtered=allShipments.filter(s=>!q||(s.ref||'').toLowerCase().includes(q)||(s.date||'').toLowerCase().includes(q));
-  if(!filtered.length){document.getElementById('sidebarList').innerHTML='<div class="empty-state" style="padding:40px"><p>No shipments</p></div>';return}
-  document.getElementById('sidebarList').innerHTML=filtered.map(s=>{
-    const act=currentFolder===s.folder;
-    let badge='';
-    if(!s.has_comparison)badge='<span class="pill nocomp">Pending</span>';
-    else if(s.mismatch_count>0)badge=`<span class="pill mismatch">${s.mismatch_count}</span>`;
-    else badge='<span class="pill match">OK</span>';
-    let files='';
-    if(act&&s.files){
-      const pdfs=s.files.filter(f=>f.ext==='.pdf');const imgs=s.files.filter(f=>['.png','.jpg','.jpeg'].includes(f.ext));
-      if(pdfs.length){files+='<div class="file-section-label">Documents</div>';pdfs.forEach(f=>{files+=`<div class="file-link" onclick="event.stopPropagation();openDoc('${esc(s.folder)}','${esc(f.name)}','pdf')"><span class="material-icons-outlined">picture_as_pdf</span>${esc(f.name)}</div>`})}
-      if(imgs.length){files+='<div class="file-section-label">Tracking</div>';imgs.forEach(f=>{const cno=f.name.replace(/_lane\.png|_tracking\.png|\.png|\.jpg/gi,'');files+=`<div class="file-link" onclick="event.stopPropagation();openDoc('${esc(s.folder)}','${esc(f.name)}','tracking','${esc(cno)}')"><span class="material-icons-outlined">image</span>${esc(cno)}</div>`})}
+    async function selectQueueItem(folder) {
+      currentFolder = folder;
+
+      // Update active state manually without re-rendering everything
+      document.querySelectorAll('.queue-card').forEach(c => {
+        if (c.dataset.folder === folder) {
+          c.style.borderColor = 'var(--purple)';
+          c.classList.add('active');
+        } else {
+          c.style.borderColor = 'var(--border)';
+          c.classList.remove('active');
+        }
+      });
+
+      const s = allShipments.find(x => x.folder === folder);
+      if (!s) return;
+
+      try {
+        const r = await fetch('/api/shipment/' + encodeURIComponent(folder) + '/comparison');
+        const comp = await r.json();
+
+        // Create a temporary container to render comparison
+        const temp = document.createElement('div');
+        document.getElementById('mainPanel').appendChild(temp); // temp append to access DOM
+
+        // We override document.getElementById temporarily or just render and extract innerHTML
+        const oldHtml = document.getElementById('mainPanel').innerHTML;
+        renderComparison(s, comp);
+        const compHtml = document.getElementById('mainPanel').innerHTML;
+
+        // Restore queue panel and inject comp Html
+        document.getElementById('mainPanel').innerHTML = oldHtml;
+        document.getElementById('queueCompPanel').innerHTML = compHtml;
+
+        // Pre-check checkboxes based on saved queue fields
+        const savedFields = queueData[folder]?.fields || {};
+        document.getElementById('queueCompPanel').querySelectorAll('.rcb').forEach(cb => {
+          const tab = cb.dataset.tab, field = cb.dataset.field, container = cb.dataset.container || '';
+          cb.checked = false;
+          if (tab === 'Cargo' && container) {
+            if (savedFields[tab] && savedFields[tab][container] && savedFields[tab][container][field]) cb.checked = true;
+          } else {
+            if (savedFields[tab] && savedFields[tab][field]) cb.checked = true;
+          }
+        });
+
+      } catch (e) {
+        document.getElementById('queueCompPanel').innerHTML = '<p>Error loading comparison</p>';
+      }
     }
-    return `<div class="folder-item ${act?'active expanded':''}" onclick="selectFolder('${esc(s.folder)}')"><div class="folder-head"><span class="material-icons-outlined folder-icon">${act?'folder_open':'folder'}</span><div class="folder-info"><div class="folder-ref">${esc(s.ref||s.folder)}</div><div class="folder-date">${esc(s.date)} — ${s.file_count} files</div></div><div class="folder-badges">${badge}</div></div><div class="folder-files">${files}</div></div>`;
-  }).join('');
-}
 
-// ═══════ SELECT FOLDER ═══════
-async function selectFolder(folder){
-  currentFolder=folder;editMode=false;const s=allShipments.find(x=>x.folder===folder);currentFiles=s?s.files:[];renderSidebar();
-  if(!s||!s.has_comparison){document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><span class="material-icons-outlined">hourglass_empty</span><p>No comparison yet</p></div>`;return}
-  try{const r=await fetch('/api/shipment/'+encodeURIComponent(folder)+'/comparison');currentComp=await r.json();renderComparison(s,currentComp)}catch(e){document.getElementById('mainPanel').innerHTML='<div class="empty-state"><span class="material-icons-outlined">error</span><p>Failed</p></div>'}
-}
+    async function submitQueue() {
+      if (!Object.keys(queueData).length) return;
+      try {
+        const r = await fetch('/api/queue/submit-complete', { method: 'POST' });
+        const d = await r.json();
+        if (d.status === 'queued') {
+          showToast("Submit + Complete", d.message);
+          document.getElementById('queueStatusText').innerHTML = '<span style="color:var(--orange);font-weight:600;">Processing...</span>';
+          const firstFolder = Object.keys(queueData)[0];
+          pollUp(firstFolder, (status) => {
+            if (status.status === 'completed' || status.status === 'failed') {
+              loadShipments();
+              if (Object.keys(queueData).length > 0) renderQueuePanel();
+            }
+          });
+          queueData = {};
+          renderQueueSidebar();
+          renderQueuePanel();
+        }
+      } catch (e) {
+        showToast("Error", "Failed to submit queue");
+      }
+    }
 
-// ═══════ OPEN DOC/TRACKING SPLIT ═══════
-async function openDoc(folder,fileName,type,containerNo){
-  const base=fileName.replace(/\.(pdf|png|jpg|jpeg)$/i,'');const jsonName=base+'.json';const hasJson=currentFiles.some(f=>f.name===jsonName);
-  let jsonUrl=null,jsonData=null;
-  if(type==='pdf'&&hasJson)jsonUrl='/files/'+encodeURIComponent(folder)+'/'+encodeURIComponent(jsonName);
-  else if(type==='tracking'){const cj=containerNo+'_result.json';if(currentFiles.some(f=>f.name===cj))jsonUrl='/files/'+encodeURIComponent(folder)+'/'+encodeURIComponent(cj);else if(currentFiles.some(f=>f.name==='Tracking_Results.json'))jsonUrl='/files/'+encodeURIComponent(folder)+'/Tracking_Results.json'}
-  if(jsonUrl){try{const r=await fetch(jsonUrl);jsonData=await r.json();if(type==='tracking'&&!currentFiles.some(f=>f.name===containerNo+'_result.json')&&jsonData[containerNo])jsonData=jsonData[containerNo]}catch(e){}}
-  const fileUrl='/files/'+encodeURIComponent(folder)+'/'+encodeURIComponent(fileName);
-  const leftTitle=type==='pdf'?fileName:containerNo+' — Lane Screenshot';const rightTitle=type==='pdf'?(hasJson?jsonName:'Data'):(containerNo+' — Tracking');
-  const leftIcon=type==='pdf'?'picture_as_pdf':'image';
-  // Replace this block inside openDoc():
-let leftContent = '';
-if (type === 'pdf') {
-    const pdfUrl = '/files/' + encodeURIComponent(folder) + '/' + encodeURIComponent(fileName);
-    leftContent = `
+    async function updateQueueOnly() {
+      if (!Object.keys(queueData).length) return;
+      try {
+        const r = await fetch('/api/queue/update-only', { method: 'POST' });
+        const d = await r.json();
+        if (d.status === 'queued') {
+          showToast("Update Only", d.message);
+          document.getElementById('queueStatusText').innerHTML = '<span style="color:var(--orange);font-weight:600;">Updating...</span>';
+          const firstFolder = Object.keys(queueData)[0];
+          pollUp(firstFolder, (status) => {
+            if (status.status === 'completed' || status.status === 'failed') {
+              loadShipments();
+              if (Object.keys(queueData).length > 0) renderQueuePanel();
+            }
+          });
+          queueData = {};
+          renderQueueSidebar();
+          renderQueuePanel();
+        }
+      } catch (e) {
+        showToast("Error", "Failed");
+      }
+    }
+
+    function renderSidebar() {
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+      const filtered = allShipments.filter(s => !q || (s.ref || '').toLowerCase().includes(q) || (s.date || '').toLowerCase().includes(q));
+      if (!filtered.length) { document.getElementById('sidebarList').innerHTML = '<div class="empty-state" style="padding:40px"><p>No shipments</p></div>'; return }
+      document.getElementById('sidebarList').innerHTML = filtered.map(s => {
+        const act = currentFolder === s.folder;
+        let badge = '';
+        if (!s.has_comparison) badge = '<span class="pill nocomp">Pending</span>';
+        else if (s.mismatch_count > 0) badge = `<span class="pill mismatch">${s.mismatch_count}</span>`;
+        else badge = '<span class="pill match">OK</span>';
+        let files = '';
+        if (act && s.files) {
+          const pdfs = s.files.filter(f => f.ext === '.pdf'); const imgs = s.files.filter(f => ['.png', '.jpg', '.jpeg'].includes(f.ext));
+          if (pdfs.length) { files += '<div class="file-section-label">Documents</div>'; pdfs.forEach(f => { files += `<div class="file-link" onclick="event.stopPropagation();openDoc('${esc(s.folder)}','${esc(f.name)}','pdf')"><span class="material-icons-outlined">picture_as_pdf</span>${esc(f.name)}</div>` }) }
+          if (imgs.length) { files += '<div class="file-section-label">Tracking</div>'; imgs.forEach(f => { const cno = f.name.replace(/_lane\.png|_tracking\.png|\.png|\.jpg/gi, ''); files += `<div class="file-link" onclick="event.stopPropagation();openDoc('${esc(s.folder)}','${esc(f.name)}','tracking','${esc(cno)}')"><span class="material-icons-outlined">image</span>${esc(cno)}</div>` }) }
+        }
+        return `<div class="folder-item ${act ? 'active expanded' : ''}" onclick="selectFolder('${esc(s.folder)}')"><div class="folder-head"><span class="material-icons-outlined folder-icon">${act ? 'folder_open' : 'folder'}</span><div class="folder-info"><div class="folder-ref">${esc(s.ref || s.folder)}</div><div class="folder-date">${esc(s.date)} — ${s.file_count} files</div></div><div class="folder-badges">${badge}</div></div><div class="folder-files">${files}</div></div>`;
+      }).join('');
+    }
+
+    // ═══════ SELECT FOLDER ═══════
+    async function selectFolder(folder) {
+      currentFolder = folder; editMode = false; const s = allShipments.find(x => x.folder === folder); currentFiles = s ? s.files : []; renderSidebar();
+      if (!s || !s.has_comparison) { document.getElementById('mainPanel').innerHTML = `<div class="empty-state"><span class="material-icons-outlined">hourglass_empty</span><p>No comparison yet</p></div>`; return }
+      try { const r = await fetch('/api/shipment/' + encodeURIComponent(folder) + '/comparison'); currentComp = await r.json(); renderComparison(s, currentComp) } catch (e) { document.getElementById('mainPanel').innerHTML = '<div class="empty-state"><span class="material-icons-outlined">error</span><p>Failed</p></div>' }
+    }
+
+    // ═══════ OPEN DOC/TRACKING SPLIT ═══════
+    async function openDoc(folder, fileName, type, containerNo) {
+      const base = fileName.replace(/\.(pdf|png|jpg|jpeg)$/i, ''); const jsonName = base + '.json'; const hasJson = currentFiles.some(f => f.name === jsonName);
+      let jsonUrl = null, jsonData = null;
+      if (type === 'pdf' && hasJson) jsonUrl = '/files/' + encodeURIComponent(folder) + '/' + encodeURIComponent(jsonName);
+      else if (type === 'tracking') { const cj = containerNo + '_result.json'; if (currentFiles.some(f => f.name === cj)) jsonUrl = '/files/' + encodeURIComponent(folder) + '/' + encodeURIComponent(cj); else if (currentFiles.some(f => f.name === 'Tracking_Results.json')) jsonUrl = '/files/' + encodeURIComponent(folder) + '/Tracking_Results.json' }
+      if (jsonUrl) { try { const r = await fetch(jsonUrl); jsonData = await r.json(); if (type === 'tracking' && !currentFiles.some(f => f.name === containerNo + '_result.json') && jsonData[containerNo]) jsonData = jsonData[containerNo] } catch (e) { } }
+      const fileUrl = '/files/' + encodeURIComponent(folder) + '/' + encodeURIComponent(fileName);
+      const leftTitle = type === 'pdf' ? fileName : containerNo + ' — Lane Screenshot'; const rightTitle = type === 'pdf' ? (hasJson ? jsonName : 'Data') : (containerNo + ' — Tracking');
+      const leftIcon = type === 'pdf' ? 'picture_as_pdf' : 'image';
+      // Replace this block inside openDoc():
+      let leftContent = '';
+      if (type === 'pdf') {
+        const pdfUrl = '/files/' + encodeURIComponent(folder) + '/' + encodeURIComponent(fileName);
+        leftContent = `
         <embed
             src="${pdfUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
             type="application/pdf"
@@ -1710,56 +2464,65 @@ if (type === 'pdf') {
             <a href="${pdfUrl}" target="_blank">Open PDF</a>
         </p>
     `;
-} else {
-    leftContent = `<div style="padding:8px;overflow:auto;height:100%">
+      } else {
+        leftContent = `<div style="padding:8px;overflow:auto;height:100%">
         <img src="/files/${encodeURIComponent(folder)}/${encodeURIComponent(fileName)}"
              alt="${esc(containerNo || '')}"
              style="width:100%;height:auto;display:block">
     </div>`;
-}
-  let rightContent=jsonData?(type==='tracking'?renderTrackingCards(jsonData):renderExtractionCards(jsonData)):'<div style="padding:40px;text-align:center;color:var(--text-muted)">No data</div>';
-  document.getElementById('mainPanel').innerHTML=`<div class="doc-viewer"><div class="doc-left"><div class="doc-header"><span class="doc-header-title"><span class="material-icons-outlined">${leftIcon}</span>${esc(leftTitle)}</span></div><div class="doc-body">${leftContent}</div></div><div class="doc-right"><div class="doc-header"><span class="doc-header-title"><span class="material-icons-outlined">data_object</span>${esc(rightTitle)}</span><button class="back-btn" onclick="selectFolder('${esc(currentFolder)}')"><span class="material-icons-outlined" style="font-size:14px">arrow_back</span>Back</button></div><div class="doc-body" style="padding:4px 0">${rightContent}</div></div></div>`;
-}
-function renderExtractionCards(d){
-  let h='';
-  const gen=[['Document Type',d.document_type],['BL Type',d.bl_type],['Reference',d.reference_number],['Vessel',d.vessel],['Voyage',d.voyage],['POL',d.port_of_loading],['POD',d.port_of_discharge],['Place of Delivery',d.place_of_delivery],['Shipped On Board',d.shipped_on_board_date],['Carrier',d.carrier_name]].filter(r=>r[1]);
-  if(gen.length)h+=buildCard('General','info',gen);
-  const parties=[['Shipper',d.shipper],['Consignee',d.consignee],['Notify',d.notify]].filter(r=>r[1]);
-  if(parties.length)h+=buildCard('Parties','group',parties);
-  const cargo=[['Description',d.description],['Packages',d.number_and_type_of_packages]].filter(r=>r[1]);
-  if(cargo.length)h+=buildCard('Cargo','inventory_2',cargo);
-  (d.containers||[]).forEach((c,i)=>{const f=[['Container No',c.container_no],['Type',c.container_type],['Seal',c.seal_no],['Qty',c.package_qty],['Package Type',c.package_type],['Weight',c.gross_weight],['Volume',c.measurement],['Goods',c.goods_description]].filter(r=>r[1]);h+=`<div class="cnt-card"><div class="cnt-header"><span class="material-icons-outlined">inventory_2</span>${esc(c.container_no||'Container '+(i+1))}</div>`;f.forEach(([l,v])=>{h+=`<div class="ext-row"><span class="ext-label">${esc(l)}</span><span class="ext-value">${esc(String(v))}</span></div>`});h+='</div>'});
-  return h;
-}
-function renderTrackingCards(d){
-  let h='';const info=[['Status',d.status||d.shipment_status],['Container',d.container_number],['Vessel',d.arrival_vessel||d.vessel],['Voyage',d.arrival_voyage||d.loaded_voyage],['POL',d.pol||d.port_of_loading],['POD',d.pod||d.port_of_discharge],['ETD',d.etd||d.departure_date],['ETA',d.eta||d.arrival_date],['Terminal',d.pod_terminal]].filter(r=>r[1]);
-  if(info.length)h+=buildCard('Tracking Info','travel_explore',info);
-  const ts=d.transshipments||d.transits||[];
-  if(ts.length){ts.forEach((t,i)=>{const f=[['Port',t.port],['ETA',t.eta],['ETD',t.etd],['Voyage',t.voyage_out||t.voyage]].filter(r=>r[1]);h+=`<div class="cnt-card"><div class="cnt-header"><span class="material-icons-outlined">swap_horiz</span>Transit ${i+1}</div>`;f.forEach(([l,v])=>{h+=`<div class="ext-row"><span class="ext-label">${esc(l)}</span><span class="ext-value">${esc(String(v))}</span></div>`});h+='</div>'})}
-  const ev=d.events||d.tracking_events||[];
-  if(ev.length){h+=buildCard('Events ('+ev.length+')','timeline',ev.slice(0,15).map(e=>[(e.description||e.event||'')+(e.location?' — '+e.location:''),e.date||e.timestamp||'']))}
-  return h;
-}
-function buildCard(title,icon,rows){let h=`<div class="ext-card"><div class="ext-card-header"><span class="material-icons-outlined">${icon}</span>${esc(title)}</div>`;rows.forEach(([l,v])=>{h+=`<div class="ext-row"><span class="ext-label">${esc(l)}</span><span class="ext-value">${v?esc(String(v)):'—'}</span></div>`});return h+'</div>'}
+      }
+      let rightContent = jsonData ? (type === 'tracking' ? renderTrackingCards(jsonData) : renderExtractionCards(jsonData)) : '<div style="padding:40px;text-align:center;color:var(--text-muted)">No data</div>';
+      document.getElementById('mainPanel').innerHTML = `<div class="doc-viewer"><div class="doc-left"><div class="doc-header"><span class="doc-header-title"><span class="material-icons-outlined">${leftIcon}</span>${esc(leftTitle)}</span></div><div class="doc-body">${leftContent}</div></div><div class="doc-right"><div class="doc-header"><span class="doc-header-title"><span class="material-icons-outlined">data_object</span>${esc(rightTitle)}</span><button class="back-btn" onclick="selectFolder('${esc(currentFolder)}')"><span class="material-icons-outlined" style="font-size:14px">arrow_back</span>Back</button></div><div class="doc-body" style="padding:4px 0">${rightContent}</div></div></div>`;
+    }
+    function renderExtractionCards(d) {
+      let h = '';
+      const gen = [['Document Type', d.document_type], ['BL Type', d.bl_type], ['Reference', d.reference_number], ['Vessel', d.vessel], ['Voyage', d.voyage], ['POL', d.port_of_loading], ['POD', d.port_of_discharge], ['Place of Delivery', d.place_of_delivery], ['Shipped On Board', d.shipped_on_board_date], ['Carrier', d.carrier_name]].filter(r => r[1]);
+      if (gen.length) h += buildCard('General', 'info', gen);
+      const parties = [['Shipper', d.shipper], ['Consignee', d.consignee], ['Notify', d.notify]].filter(r => r[1]);
+      if (parties.length) h += buildCard('Parties', 'group', parties);
+      const cargo = [['Description', d.description], ['Packages', d.number_and_type_of_packages]].filter(r => r[1]);
+      if (cargo.length) h += buildCard('Cargo', 'inventory_2', cargo);
+      (d.containers || []).forEach((c, i) => { const f = [['Container No', c.container_no], ['Type', c.container_type], ['Seal', c.seal_no], ['Qty', c.package_qty], ['Package Type', c.package_type], ['Weight', c.gross_weight], ['Volume', c.measurement], ['Goods', c.goods_description]].filter(r => r[1]); h += `<div class="cnt-card"><div class="cnt-header"><span class="material-icons-outlined">inventory_2</span>${esc(c.container_no || 'Container ' + (i + 1))}</div>`; f.forEach(([l, v]) => { h += `<div class="ext-row"><span class="ext-label">${esc(l)}</span><span class="ext-value">${esc(String(v))}</span></div>` }); h += '</div>' });
+      return h;
+    }
+    function renderTrackingCards(d) {
+      let h = ''; const info = [['Status', d.status || d.shipment_status], ['Container', d.container_number], ['Vessel', d.arrival_vessel || d.vessel], ['Voyage', d.arrival_voyage || d.loaded_voyage], ['POL', d.pol || d.port_of_loading], ['POD', d.pod || d.port_of_discharge], ['ETD', d.etd || d.departure_date], ['ETA', d.eta || d.arrival_date], ['Terminal', d.pod_terminal]].filter(r => r[1]);
+      if (info.length) h += buildCard('Tracking Info', 'travel_explore', info);
+      const ts = d.transshipments || d.transits || [];
+      if (ts.length) { ts.forEach((t, i) => { const f = [['Port', t.port], ['ETA', t.eta], ['ETD', t.etd], ['Voyage', t.voyage_out || t.voyage]].filter(r => r[1]); h += `<div class="cnt-card"><div class="cnt-header"><span class="material-icons-outlined">swap_horiz</span>Transit ${i + 1}</div>`; f.forEach(([l, v]) => { h += `<div class="ext-row"><span class="ext-label">${esc(l)}</span><span class="ext-value">${esc(String(v))}</span></div>` }); h += '</div>' }) }
+      const ev = d.events || d.tracking_events || [];
+      if (ev.length) { h += buildCard('Events (' + ev.length + ')', 'timeline', ev.slice(0, 15).map(e => [(e.description || e.event || '') + (e.location ? ' — ' + e.location : ''), e.date || e.timestamp || ''])) }
+      return h;
+    }
+    function buildCard(title, icon, rows) { let h = `<div class="ext-card"><div class="ext-card-header"><span class="material-icons-outlined">${icon}</span>${esc(title)}</div>`; rows.forEach(([l, v]) => { h += `<div class="ext-row"><span class="ext-label">${esc(l)}</span><span class="ext-value">${v ? esc(String(v)) : '—'}</span></div>` }); return h + '</div>' }
 
-// ═══════ COMPARISON TABLES ═══════
-function renderComparison(ship,comp){
-  let actionsHtml = '';
-  if (editMode) {
-    actionsHtml = `
-      <button class="btn btn-green btn-sm" onclick="saveEdits()"><span class="material-icons-outlined" style="font-size:14px">save</span> Save Changes</button>
-      <button class="btn btn-outline btn-sm" onclick="toggleEdit()"><span class="material-icons-outlined" style="font-size:14px">close</span> Cancel</button>
+    // ═══════ COMPARISON TABLES ═══════
+    function renderComparison(ship, comp) {
+      let actionsHtml = '';
+      if (editMode) {
+        actionsHtml = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-green btn-sm" onclick="saveEdits()"><span class="material-icons-outlined" style="font-size:14px">save</span> Save</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleEdit()"><span class="material-icons-outlined" style="font-size:14px">close</span> Cancel</button>
+      </div>
     `;
-  } else {
-    actionsHtml = `
-      <button class="btn btn-amber btn-sm" onclick="toggleEdit()" id="editBtn"><span class="material-icons-outlined" style="font-size:14px">edit</span> Edit Values</button>
-      <button class="btn btn-primary" onclick="updateSelected()"><span class="material-icons-outlined" style="font-size:16px">sync</span> Update Selected</button>
-      <button class="btn btn-green" onclick="completeStatus()"><span class="material-icons-outlined" style="font-size:16px">check_circle</span> Complete Status</button>
-      <button class="btn btn-indigo" onclick="reextractAI('${esc(ship.folder)}')" id="reextractBtn" style="background-color: var(--indigo); color: white;"><span class="material-icons-outlined" style="font-size:16px">document_scanner</span> AI Extraction</button>
-      <button class="btn btn-purple" onclick="recompareAI('${esc(ship.folder)}')" id="recompareBtn"><span class="material-icons-outlined" style="font-size:16px">auto_awesome</span> AI Comparison</button>
+      } else {
+        actionsHtml = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="updateSelected()"><span class="material-icons-outlined" style="font-size:14px">sync</span> Update</button>
+          <button class="btn btn-green btn-sm" onclick="completeStatus()"><span class="material-icons-outlined" style="font-size:14px">check_circle</span> Complete</button>
+        </div>
+        <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="toggleEdit()" title="Edit values"><span class="material-icons-outlined" style="font-size:14px">edit</span></button>
+          <button class="btn btn-outline btn-sm" onclick="reextractAI('${esc(ship.folder)}')" id="reextractBtn" title="Re-extract PDFs"><span class="material-icons-outlined" style="font-size:14px">document_scanner</span></button>
+          <button class="btn btn-outline btn-sm" onclick="recompareAI('${esc(ship.folder)}')" id="recompareBtn" title="Re-run AI comparison"><span class="material-icons-outlined" style="font-size:14px">auto_awesome</span></button>
+        </div>
+      </div>
     `;
-  }
-  let h=`<div class="comp-header"><div>
+      }
+      let h = `<div class="comp-header"><div>
     <div style="display:flex;align-items:center;gap:12px;">
       <label style="display:flex;align-items:center;gap:6px;font-weight:600;color:var(--purple);cursor:pointer;background:var(--purple-light);padding:4px 10px;border-radius:6px;border:1px solid var(--purple);">
         <input type="checkbox" id="queueCheckbox" onchange="toggleQueueItem('${esc(ship.folder)}', this)" ${isQueued(ship.folder) ? 'checked' : ''} style="accent-color:var(--purple);">
@@ -1770,189 +2533,201 @@ function renderComparison(ship,comp){
     <div class="comp-date">${esc(ship.date)} — ${ship.file_count} files</div></div><div class="comp-actions">
     ${actionsHtml}
   </div></div>`;
-  h+=buildFlat('Parties','group','Parties',comp.Parties||[]);
-  h+=buildFlat('Carrier','local_shipping','Carrier',comp.Carrier||[]);
-  h+=buildCont('Cargo','inventory_2','Cargo',comp.Cargo||[]);
-  if (comp.is_oocl) {
-    h += `<div style="background:var(--orange-light); border:1px solid var(--orange); color:var(--orange); padding:12px 16px; border-radius:8px; display:flex; align-items:center; gap:8px; margin-bottom:14px; font-weight:600; font-size:12px;">
+      h += buildFlat('Parties', 'group', 'Parties', comp.Parties || []);
+      h += buildFlat('Carrier', 'local_shipping', 'Carrier', comp.Carrier || []);
+      h += buildCont('Cargo', 'inventory_2', 'Cargo', comp.Cargo || []);
+      if (comp.is_oocl) {
+        h += `<div style="background:var(--orange-light); border:1px solid var(--orange); color:var(--orange); padding:12px 16px; border-radius:8px; display:flex; align-items:center; gap:8px; margin-bottom:14px; font-weight:600; font-size:12px;">
       <span class="material-icons-outlined" style="color:var(--orange); font-size:20px;">warning</span>
       <span>OOCL / CMA CGM Tracking — Please DO MANUALLY. <button class="btn btn-amber btn-sm" style="margin-left:8px;" onclick="window.open('/carrier', '_blank')">Track Manually</button></span>
     </div>`;
-  }
-  h+=buildCont('Routing','explore','Routing',comp.Routing||[]);
-  document.getElementById('mainPanel').innerHTML=h;
-}
-function toggleEdit(){
-  editMode=!editMode;
-  if(currentComp&&currentFolder){const s=allShipments.find(x=>x.folder===currentFolder);if(s)renderComparison(s,currentComp)}
-}
-async function saveEdits() {
-  if (!currentFolder) return;
-  const inputs = document.querySelectorAll('.val-edit');
-  const edits = [];
-  inputs.forEach(inp => {
-    const value = inp.value;
-    const originalValue = inp.dataset.original || '';
-    // Only send the field if the user actually edited it!
-    if (value !== originalValue) {
-      const tab = inp.dataset.tab;
-      const field = inp.dataset.field;
-      const container = inp.dataset.container || '';
-      edits.push({ tab, field, container, value });
+      }
+      h += buildCont('Routing', 'explore', 'Routing', comp.Routing || []);
+      document.getElementById('mainPanel').innerHTML = h;
     }
-  });
-  try {
-    const response = await fetch('/api/shipment/' + encodeURIComponent(currentFolder) + '/save-comparison', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ edits })
-    });
-    const data = await response.json();
-    if (data.status === 'success') {
-      showToast('Saved', 'Manual edits saved and re-compared successfully.');
-      editMode = false;
-      loadShipments();
-      await selectFolder(currentFolder);
-    } else {
-      showToast('Error', data.message || 'Failed to save edits');
+    function toggleEdit() {
+      editMode = !editMode;
+      if (currentComp && currentFolder) { const s = allShipments.find(x => x.folder === currentFolder); if (s) renderComparison(s, currentComp) }
     }
-  } catch (e) {
-    console.error(e);
-    showToast('Error', 'Failed to save changes');
-  }
-}
-function buildFlat(title,icon,tab,items){
-  let mm=0;items.forEach(i=>{if(i.status==='MISMATCH')mm++});
-  const bc=mm>0?'MISMATCH':'MATCH',bt=mm>0?mm+' mismatch':'All match';
-  let h=`<div class="comp-section"><div class="comp-section-header"><span class="material-icons-outlined comp-section-icon">${icon}</span><span class="comp-section-title">${title}</span><span class="comp-section-badge badge ${bc}">${bt}</span></div><table class="comp-table"><thead><tr><th class="cb-cell"><input type="checkbox" onchange="togAll(this,'${tab}')"></th><th>Field</th><th>Jordex Value</th><th>Document Value</th><th>Status</th></tr></thead><tbody>`;
-  items.forEach(i=>{
-    const chk=i.status==='MISMATCH'||i.status==='ADDED';
-    const docVal=editMode?`<textarea class="val-edit" data-tab="${tab}" data-field="${esc(i.field)}" data-original="${esc(i.raw_data||i.document_value||'')}">${esc(i.raw_data||i.document_value||'')}</textarea>`:`<span class="val">${esc(i.document_value||'—')}</span>`;
-    h+=`<tr><td class="cb-cell"><input type="checkbox" class="rcb" data-tab="${tab}" data-field="${esc(i.field)}" data-value="${esc(i.raw_data||i.document_value||'')}" ${chk?'checked':''}></td><td class="fn">${esc(i.field)}</td><td class="val">${esc(i.jordex_value||'—')}</td><td>${docVal}</td><td><span class="badge ${i.status}">${i.status}</span></td></tr>`;
-  });
-  return h+'</tbody></table></div>';
-}
-function buildCont(title,icon,tab,containers){
-  let mm=0;containers.forEach(c=>(c.fields||[]).forEach(f=>{if(f.status==='MISMATCH')mm++}));
-  const bc=mm>0?'MISMATCH':'MATCH',bt=mm>0?mm+' mismatch':'All match';
-  let h=`<div class="comp-section"><div class="comp-section-header"><span class="material-icons-outlined comp-section-icon">${icon}</span><span class="comp-section-title">${title}</span><span class="comp-section-badge badge ${bc}">${bt}</span></div><table class="comp-table"><thead><tr><th class="cb-cell"><input type="checkbox" onchange="togAll(this,'${tab}')"></th><th>Field</th><th>Jordex Value</th><th>Document Value</th><th>Status</th></tr></thead><tbody>`;
-  containers.forEach(c=>{
-    const cno=c.container||'Container';
-    h+=`<tr class="container-row"><td colspan="5"><span class="material-icons-outlined" style="font-size:13px;vertical-align:middle;margin-right:3px">inventory_2</span>${esc(cno)}</td></tr>`;
-    
-    (c.fields||[]).forEach(f=>{
-      const chk=f.status==='MISMATCH'||f.status==='ADDED';
-      const docVal=editMode?`<textarea class="val-edit" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-original="${esc(f.raw_data||f.document_value||'')}">${esc(f.raw_data||f.document_value||'')}</textarea>`:`<span class="val">${esc(f.document_value||'—')}</span>`;
-      h+=`<tr><td class="cb-cell"><input type="checkbox" class="rcb" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-value="${esc(f.raw_data||f.document_value||'')}" ${chk?'checked':''}></td><td class="fn">${esc(f.field)}</td><td class="val">${esc(f.jordex_value||'—')}</td><td>${docVal}</td><td><span class="badge ${f.status}">${f.status}</span></td></tr>`;
-    });
+    async function saveEdits() {
+      if (!currentFolder) return;
+      const inputs = document.querySelectorAll('.val-edit');
+      const edits = [];
+      inputs.forEach(inp => {
+        const value = inp.value;
+        const originalValue = inp.dataset.original || '';
+        // Only send the field if the user actually edited it!
+        if (value !== originalValue) {
+          const tab = inp.dataset.tab;
+          const field = inp.dataset.field;
+          const container = inp.dataset.container || '';
+          edits.push({ tab, field, container, value });
+        }
+      });
+      try {
+        const response = await fetch('/api/shipment/' + encodeURIComponent(currentFolder) + '/save-comparison', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ edits })
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          showToast('Saved', 'Manual edits saved and re-compared successfully.');
+          editMode = false;
+          loadShipments();
+          await selectFolder(currentFolder);
+        } else {
+          showToast('Error', data.message || 'Failed to save edits');
+        }
+      } catch (e) {
+        console.error(e);
+        showToast('Error', 'Failed to save changes');
+      }
+    }
+    function buildFlat(title, icon, tab, items) {
+      let mm = 0; items.forEach(i => { if (i.status === 'MISMATCH') mm++ });
+      const bc = mm > 0 ? 'MISMATCH' : 'MATCH', bt = mm > 0 ? mm + ' mismatch' : 'All match';
+      let h = `<div class="comp-section"><div class="comp-section-header"><span class="material-icons-outlined comp-section-icon">${icon}</span><span class="comp-section-title">${title}</span><span class="comp-section-badge badge ${bc}">${bt}</span></div><table class="comp-table"><thead><tr><th class="cb-cell"><input type="checkbox" onchange="togAll(this,'${tab}')"></th><th>Field</th><th>Jordex Value</th><th>Document Value</th><th>Status</th></tr></thead><tbody>`;
+      items.forEach(i => {
+        const chk = i.status === 'MISMATCH' || i.status === 'ADDED';
+        const docVal = editMode ? `<textarea class="val-edit" data-tab="${tab}" data-field="${esc(i.field)}" data-original="${esc(i.raw_data || i.document_value || '')}">${esc(i.raw_data || i.document_value || '')}</textarea>` : `<span class="val">${esc(i.document_value || '—')}</span>`;
+        h += `<tr><td class="cb-cell"><input type="checkbox" class="rcb" data-tab="${tab}" data-field="${esc(i.field)}" data-value="${esc(i.raw_data || i.document_value || '')}" ${chk ? 'checked' : ''}></td><td class="fn">${esc(i.field)}</td><td class="val">${esc(i.jordex_value || '—')}</td><td>${docVal}</td><td><span class="badge ${i.status}">${i.status}</span></td></tr>`;
+      });
+      return h + '</tbody></table></div>';
+    }
+    function buildCont(title, icon, tab, containers) {
+      let mm = 0; containers.forEach(c => (c.fields || []).forEach(f => { if (f.status === 'MISMATCH') mm++ }));
+      const bc = mm > 0 ? 'MISMATCH' : 'MATCH', bt = mm > 0 ? mm + ' mismatch' : 'All match';
+      let h = `<div class="comp-section"><div class="comp-section-header"><span class="material-icons-outlined comp-section-icon">${icon}</span><span class="comp-section-title">${title}</span><span class="comp-section-badge badge ${bc}">${bt}</span></div><table class="comp-table"><thead><tr><th class="cb-cell"><input type="checkbox" onchange="togAll(this,'${tab}')"></th><th>Field</th><th>Jordex Value</th><th>Document Value</th><th>Status</th></tr></thead><tbody>`;
+      containers.forEach(c => {
+        const cno = c.container || 'Container';
+        h += `<tr class="container-row"><td colspan="5"><span class="material-icons-outlined" style="font-size:13px;vertical-align:middle;margin-right:3px">inventory_2</span>${esc(cno)}</td></tr>`;
 
-    if (c.transits && c.transits.length > 0) {
-        c.transits.forEach((t_group, idx) => {
+        (c.fields || []).forEach(f => {
+          const chk = f.status === 'MISMATCH' || f.status === 'ADDED';
+          const docVal = editMode ? `<textarea class="val-edit" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-original="${esc(f.raw_data || f.document_value || '')}">${esc(f.raw_data || f.document_value || '')}</textarea>` : `<span class="val">${esc(f.document_value || '—')}</span>`;
+          h += `<tr><td class="cb-cell"><input type="checkbox" class="rcb" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-value="${esc(f.raw_data || f.document_value || '')}" ${chk ? 'checked' : ''}></td><td class="fn">${esc(f.field)}</td><td class="val">${esc(f.jordex_value || '—')}</td><td>${docVal}</td><td><span class="badge ${f.status}">${f.status}</span></td></tr>`;
+        });
+
+        if (c.transits && c.transits.length > 0) {
+          c.transits.forEach((t_group, idx) => {
             h += `<tr><td colspan="5" style="padding: 10px 15px; background: #fff;"><div style="background: #fafbfd; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 5px;">`;
-            h += `<div style="font-weight: 700; color: var(--indigo); font-size: 11px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;"><span class="material-icons-outlined" style="font-size: 14px;">directions_boat</span> Transit ${idx+1}</div>`;
+            h += `<div style="font-weight: 700; color: var(--indigo); font-size: 11px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;"><span class="material-icons-outlined" style="font-size: 14px;">directions_boat</span> Transit ${idx + 1}</div>`;
             h += `<table style="width: 100%; border-collapse: collapse;"><tbody>`;
             t_group.forEach(f => {
-                const chk=f.status==='MISMATCH'||f.status==='ADDED';
-                const docVal=editMode?`<textarea class="val-edit" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-original="${esc(f.raw_data||f.document_value||'')}">${esc(f.raw_data||f.document_value||'')}</textarea>`:`<span class="val">${esc(f.document_value||'—')}</span>`;
-                h+=`<tr style="border-bottom: 1px solid #f3f4f8;"><td class="cb-cell" style="width: 40px; padding: 8px 0;"><input type="checkbox" class="rcb" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-value="${esc(f.raw_data||f.document_value||'')}" ${chk?'checked':''}></td><td class="fn" style="width: 220px; font-weight: 600; color: var(--text-sec); font-size: 11px;">${esc(f.field)}</td><td class="val" style="width: 30%; font-size: 11px; color: var(--text);">${esc(f.jordex_value||'—')}</td><td style="font-size: 11px; color: var(--text);">${docVal}</td><td style="width: 100px; text-align: right;"><span class="badge ${f.status}">${f.status}</span></td></tr>`;
+              const chk = f.status === 'MISMATCH' || f.status === 'ADDED';
+              const docVal = editMode ? `<textarea class="val-edit" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-original="${esc(f.raw_data || f.document_value || '')}">${esc(f.raw_data || f.document_value || '')}</textarea>` : `<span class="val">${esc(f.document_value || '—')}</span>`;
+              h += `<tr style="border-bottom: 1px solid #f3f4f8;"><td class="cb-cell" style="width: 40px; padding: 8px 0;"><input type="checkbox" class="rcb" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-value="${esc(f.raw_data || f.document_value || '')}" ${chk ? 'checked' : ''}></td><td class="fn" style="width: 220px; font-weight: 600; color: var(--text-sec); font-size: 11px;">${esc(f.field)}</td><td class="val" style="width: 30%; font-size: 11px; color: var(--text);">${esc(f.jordex_value || '—')}</td><td style="font-size: 11px; color: var(--text);">${docVal}</td><td style="width: 100px; text-align: right;"><span class="badge ${f.status}">${f.status}</span></td></tr>`;
             });
             h += `</tbody></table></div></td></tr>`;
-        });
-    }
+          });
+        }
 
-    if (c.carrier_on_carriage && c.carrier_on_carriage.length > 0) {
-        c.carrier_on_carriage.forEach((c_group, idx) => {
+        if (c.carrier_on_carriage && c.carrier_on_carriage.length > 0) {
+          c.carrier_on_carriage.forEach((c_group, idx) => {
             h += `<tr><td colspan="5" style="padding: 10px 15px; background: #fff;"><div style="background: #fafbfd; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 5px;">`;
-            h += `<div style="font-weight: 700; color: var(--indigo); font-size: 11px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;"><span class="material-icons-outlined" style="font-size: 14px;">local_shipping</span> Carrier On-Carriage ${idx+1}</div>`;
+            h += `<div style="font-weight: 700; color: var(--indigo); font-size: 11px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;"><span class="material-icons-outlined" style="font-size: 14px;">local_shipping</span> Carrier On-Carriage ${idx + 1}</div>`;
             h += `<table style="width: 100%; border-collapse: collapse;"><tbody>`;
             c_group.forEach(f => {
-                const chk=f.status==='MISMATCH'||f.status==='ADDED';
-                const docVal=editMode?`<textarea class="val-edit" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-original="${esc(f.raw_data||f.document_value||'')}">${esc(f.raw_data||f.document_value||'')}</textarea>`:`<span class="val">${esc(f.document_value||'—')}</span>`;
-                h+=`<tr style="border-bottom: 1px solid #f3f4f8;"><td class="cb-cell" style="width: 40px; padding: 8px 0;"><input type="checkbox" class="rcb" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-value="${esc(f.raw_data||f.document_value||'')}" ${chk?'checked':''}></td><td class="fn" style="width: 220px; font-weight: 600; color: var(--text-sec); font-size: 11px;">${esc(f.field)}</td><td class="val" style="width: 30%; font-size: 11px; color: var(--text);">${esc(f.jordex_value||'—')}</td><td style="font-size: 11px; color: var(--text);">${docVal}</td><td style="width: 100px; text-align: right;"><span class="badge ${f.status}">${f.status}</span></td></tr>`;
+              const chk = f.status === 'MISMATCH' || f.status === 'ADDED';
+              const docVal = editMode ? `<textarea class="val-edit" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-original="${esc(f.raw_data || f.document_value || '')}">${esc(f.raw_data || f.document_value || '')}</textarea>` : `<span class="val">${esc(f.document_value || '—')}</span>`;
+              h += `<tr style="border-bottom: 1px solid #f3f4f8;"><td class="cb-cell" style="width: 40px; padding: 8px 0;"><input type="checkbox" class="rcb" data-tab="${tab}" data-container="${esc(cno)}" data-field="${esc(f.field)}" data-value="${esc(f.raw_data || f.document_value || '')}" ${chk ? 'checked' : ''}></td><td class="fn" style="width: 220px; font-weight: 600; color: var(--text-sec); font-size: 11px;">${esc(f.field)}</td><td class="val" style="width: 30%; font-size: 11px; color: var(--text);">${esc(f.jordex_value || '—')}</td><td style="font-size: 11px; color: var(--text);">${docVal}</td><td style="width: 100px; text-align: right;"><span class="badge ${f.status}">${f.status}</span></td></tr>`;
             });
             h += `</tbody></table></div></td></tr>`;
-        });
+          });
+        }
+      });
+      return h + '</tbody></table></div>';
     }
-  });
-  return h+'</tbody></table></div>';
-}
-function togAll(m,tab){document.querySelectorAll(`.rcb[data-tab="${tab}"]`).forEach(cb=>{cb.checked=m.checked})}
+    function togAll(m, tab) { document.querySelectorAll(`.rcb[data-tab="${tab}"]`).forEach(cb => { cb.checked = m.checked }) }
 
-// ═══════ UPDATE (container-specific for Cargo) ═══════
-async function updateSelected(){
-  if(!currentFolder)return;
-  const checked=[...document.querySelectorAll('.rcb:checked')];
-  if(!checked.length){showToast('No fields','Select rows to update');return}
-  // If edit mode, read edited values from inputs
-  if(editMode){
-    document.querySelectorAll('.val-edit').forEach(inp=>{
-      const tab=inp.dataset.tab,field=inp.dataset.field,container=inp.dataset.container||'';
-      // Find matching checkbox and update its data-value
-      const sel=container?`.rcb[data-tab="${tab}"][data-container="${container}"][data-field="${field}"]`:`.rcb[data-tab="${tab}"][data-field="${field}"]`;
-      const cb=document.querySelector(sel);
-      if(cb)cb.dataset.value=inp.value;
-    });
-  }
-  // Build container-aware fields for Cargo
-  const fields={};
-  checked.forEach(cb=>{
-    const tab=cb.dataset.tab,field=cb.dataset.field,value=cb.dataset.value,container=cb.dataset.container||'';
-    if(!value)return;
-    if(tab==='Cargo'&&container){
-      // Container-specific: {"Cargo": {"HAMU1436755": {"Package_Type": "Package"}}}
-      if(!fields[tab])fields[tab]={};
-      if(!fields[tab][container])fields[tab][container]={};
-      fields[tab][container][field]=value;
-    }else{
-      if(!fields[tab])fields[tab]={};
-      fields[tab][field]=value;
+    // ═══════ UPDATE (container-specific for Cargo) ═══════
+    async function updateSelected() {
+      if (!currentFolder) return;
+      const checked = [...document.querySelectorAll('.rcb:checked')];
+      if (!checked.length) { showToast('No fields', 'Select rows to update'); return }
+      // If edit mode, read edited values from inputs
+      if (editMode) {
+        document.querySelectorAll('.val-edit').forEach(inp => {
+          const tab = inp.dataset.tab, field = inp.dataset.field, container = inp.dataset.container || '';
+          // Find matching checkbox and update its data-value
+          const sel = container ? `.rcb[data-tab="${tab}"][data-container="${container}"][data-field="${field}"]` : `.rcb[data-tab="${tab}"][data-field="${field}"]`;
+          const cb = document.querySelector(sel);
+          if (cb) cb.dataset.value = inp.value;
+        });
+      }
+      // Build container-aware fields for Cargo
+      const fields = {};
+      checked.forEach(cb => {
+        const tab = cb.dataset.tab, field = cb.dataset.field, value = cb.dataset.value, container = cb.dataset.container || '';
+        if (!value) return;
+        if (tab === 'Cargo' && container) {
+          // Container-specific: {"Cargo": {"HAMU1436755": {"Package_Type": "Package"}}}
+          if (!fields[tab]) fields[tab] = {};
+          if (!fields[tab][container]) fields[tab][container] = {};
+          fields[tab][container][field] = value;
+        } else {
+          if (!fields[tab]) fields[tab] = {};
+          fields[tab][field] = value;
+        }
+      });
+      try { await fetch('/api/shipment/' + encodeURIComponent(currentFolder) + '/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fields }) }); showToast('Queued', 'Update queued.'); pollUp() } catch (e) { showToast('Error', 'Failed') }
     }
-  });
-  try{await fetch('/api/shipment/'+encodeURIComponent(currentFolder)+'/update',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields})});showToast('Queued','Update queued.');pollUp()}catch(e){showToast('Error','Failed')}
-}
-async function completeStatus(){
-  if(!currentFolder)return;
-  try{await fetch('/api/shipment/'+encodeURIComponent(currentFolder)+'/complete',{method:'POST'});showToast('Queued','Complete queued.');pollUp()}catch(e){showToast('Error','Failed')}
-}
-async function reextractAI(folder) {
-  if(!folder) return;
-  const btn = document.getElementById('reextractBtn');
-  if(btn) btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px; animation: spin 1s linear infinite">sync</span> Extracting...';
-  try {
-    const res = await fetch('/api/shipment/'+encodeURIComponent(folder)+'/re-extract', {method: 'POST'});
-    if(!res.ok) throw new Error('Request failed');
-    showToast('Success', 'AI Extraction completed.');
-    setTimeout(() => selectFolder(folder), 500);
-  } catch(e) {
-    showToast('Error', 'AI Extraction failed.');
-  }
-}
-async function recompareAI(folder) {
-  if(!folder) return;
-  const btn = document.getElementById('recompareBtn');
-  if(btn) btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px; animation: spin 1s linear infinite">sync</span> Processing...';
-  try {
-    const res = await fetch('/api/shipment/'+encodeURIComponent(folder)+'/recompare', {method: 'POST'});
-    if(!res.ok) throw new Error('Request failed');
-    showToast('Success', 'AI Comparison updated.');
-    setTimeout(() => selectFolder(folder), 500);
-  } catch(e) {
-    showToast('Error', 'AI Comparison failed.');
-    if(btn) btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px">auto_awesome</span> AI Comparison';
-  }}
-let upId=null;
-function pollUp(){
-  if(upId)clearInterval(upId);
-  upId=setInterval(async()=>{
-    try{const r=await fetch('/api/shipment/'+encodeURIComponent(currentFolder)+'/update-status');const d=await r.json();
-      if(d.status==='completed'){showToast('Done',d.message||'Done');clearInterval(upId);upId=null;loadShipments();if(currentFolder)setTimeout(()=>selectFolder(currentFolder),500)}
-      else if(d.status==='failed'){showToast('Failed',d.message||'Failed');clearInterval(upId);upId=null}
-      else if(d.status==='running')showToast('Processing',d.message||'...')
-    }catch(e){clearInterval(upId);upId=null}
-  },3000);
-}
-function showToast(t,m){document.getElementById('toastTitle').textContent=t;document.getElementById('toastMsg').textContent=m;const el=document.getElementById('toast');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4000)}
-loadShipments();setInterval(loadShipments,15000);
-</script>
+    async function completeStatus() {
+      if (!currentFolder) return;
+      try { await fetch('/api/shipment/' + encodeURIComponent(currentFolder) + '/complete', { method: 'POST' }); showToast('Queued', 'Complete queued.'); pollUp() } catch (e) { showToast('Error', 'Failed') }
+    }
+    async function reextractAI(folder) {
+      if (!folder) return;
+      const btn = document.getElementById('reextractBtn');
+      if (btn) btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px; animation: spin 1s linear infinite">sync</span> Extracting...';
+      try {
+        const res = await fetch('/api/shipment/' + encodeURIComponent(folder) + '/re-extract', { method: 'POST' });
+        if (!res.ok) throw new Error('Request failed');
+        showToast('Success', 'AI Extraction completed.');
+        setTimeout(() => selectFolder(folder), 500);
+      } catch (e) {
+        showToast('Error', 'AI Extraction failed.');
+      }
+    }
+    async function recompareAI(folder) {
+      if (!folder) return;
+      const btn = document.getElementById('recompareBtn');
+      if (btn) btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px; animation: spin 1s linear infinite">sync</span> Processing...';
+      try {
+        const res = await fetch('/api/shipment/' + encodeURIComponent(folder) + '/recompare', { method: 'POST' });
+        if (!res.ok) throw new Error('Request failed');
+        showToast('Success', 'AI Comparison updated.');
+        setTimeout(() => selectFolder(folder), 500);
+      } catch (e) {
+        showToast('Error', 'AI Comparison failed.');
+        if (btn) btn.innerHTML = '<span class="material-icons-outlined" style="font-size:16px">auto_awesome</span> AI Comparison';
+      }
+    }
+    let upId = null;
+    function pollUp(folderOverride, callbackFn) {
+      if (upId) clearInterval(upId);
+      const targetFolder = folderOverride || currentFolder;
+      upId = setInterval(async () => {
+        try {
+          const r = await fetch('/api/shipment/' + encodeURIComponent(targetFolder) + '/update-status');
+          const d = await r.json();
+          if (callbackFn) callbackFn(d);
+          if (d.status === 'completed') {
+            showToast('Done', d.message || 'Done');
+            clearInterval(upId); upId = null;
+            loadShipments();
+            // Auto-refresh comparison view
+            if (currentFolder && !folderOverride) setTimeout(() => selectFolder(currentFolder), 800);
+          }
+          else if (d.status === 'failed') { showToast('Failed', d.message || 'Failed'); clearInterval(upId); upId = null }
+          else if (d.status === 'running') showToast('Processing', d.message || '...')
+        } catch (e) { clearInterval(upId); upId = null }
+      }, 3000);
+    }
+    function showToast(t, m) { document.getElementById('toastTitle').textContent = t; document.getElementById('toastMsg').textContent = m; const el = document.getElementById('toast'); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 4000) }
+    loadShipments(); setInterval(loadShipments, 15000);
+  </script>
 </body>
+
 </html>

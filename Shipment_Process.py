@@ -306,6 +306,7 @@ cancel_event = threading.Event()
 _settings = {
     "ai_comparison": False,
     "no_doc_mode": False,
+    "old_file_mode": False,
     "date_start": None,
     "date_end": None,
 }
@@ -710,9 +711,9 @@ def _fill_search_select_loc(page: Page, inp, value: str) -> bool:
         log.warning("_fill_search_select_loc failed: %s", e)
         return False
 
-
 def _select_vessel_dom(page: Page, vessel_value: str):
-    """DOM-based interval typing for Vessel name autocomplete (from import_process)."""
+    """DOM-based interval typing for Vessel name autocomplete.
+    Clears existing value first to avoid stale dropdown matches."""
     safe_val = vessel_value.replace('"', '\\"').upper()
     script = f"""
     (() => {{
@@ -725,9 +726,18 @@ def _select_vessel_dom(page: Page, vessel_value: str):
         input.removeAttribute('readonly');
         input.click();
         input.focus();
+
+        // ── CLEAR existing value first ──
+        input.value = '';
+        input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+        input.dispatchEvent(new Event('change', {{ bubbles: true }}));
+
+        // Wait for dropdown to close/reset after clearing
         setTimeout(() => {{
+            // Double-check cleared
             input.value = '';
             input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+
             setTimeout(() => {{
                 let i = 0;
                 const typeInterval = setInterval(() => {{
@@ -766,12 +776,12 @@ def _select_vessel_dom(page: Page, vessel_value: str):
                     }}));
                     i++;
                 }}, 80);
-            }}, 300);
-        }}, 500);
+            }}, 500);
+        }}, 800);
     }})();
     """
     page.evaluate(script)
-    page.wait_for_timeout(len(vessel_value) * 100 + 3500)
+    page.wait_for_timeout(len(vessel_value) * 100 + 4500)
 
 
 def _click_save(page: Page) -> bool:
@@ -1384,6 +1394,86 @@ def process_shipment_documents(page: Page, date_str: str, ref_no: str) -> tuple:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+#  DOCX/DOC → PDF CONVERSION
+# ═══════════════════════════════════════════════════════════════════════
+
+def _convert_to_pdf(file_path: str) -> str:
+    """
+    Convert .docx or .doc to PDF using LibreOffice headless.
+    Returns the path to the converted PDF, or original path if already PDF.
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".pdf":
+        return file_path
+
+    if ext not in (".docx", ".doc", ".xlsx"):
+        log.warning("Unsupported file type for conversion: %s", ext)
+        return file_path
+
+    save_dir = os.path.dirname(file_path)
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    pdf_output = os.path.join(save_dir, base_name + ".pdf")
+
+    # Already converted?
+    if os.path.exists(pdf_output) and os.path.getsize(pdf_output) > 0:
+        log.info("PDF already exists: %s", pdf_output)
+        return pdf_output
+
+    # Try LibreOffice first (works on both Windows and Linux)
+    import subprocess
+    import platform
+
+    soffice_cmd = "soffice"
+    if platform.system() == "Windows":
+        # Common Windows paths
+        for path in [
+            r"C:\Program Files\LibreOffice\program\soffice.exe",
+            r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+        ]:
+            if os.path.exists(path):
+                soffice_cmd = path
+                break
+
+    try:
+        result = subprocess.run(
+            [
+                soffice_cmd, "--headless", "--norestore",
+                "--convert-to", "pdf",
+                "--outdir", save_dir,
+                file_path,
+            ],
+            capture_output=True, text=True, timeout=60,
+        )
+        if os.path.exists(pdf_output) and os.path.getsize(pdf_output) > 0:
+            log.info("Converted %s → %s", os.path.basename(file_path), os.path.basename(pdf_output))
+            return pdf_output
+        else:
+            log.warning("LibreOffice conversion produced no output. stderr: %s", result.stderr[:300])
+    except FileNotFoundError:
+        log.warning("LibreOffice not found. Install it for DOCX→PDF conversion.")
+    except subprocess.TimeoutExpired:
+        log.warning("LibreOffice conversion timed out for %s", file_path)
+    except Exception as e:
+        log.error("LibreOffice conversion failed: %s", e)
+
+    # Fallback: try docx2pdf (Windows only, requires MS Word)
+    if ext == ".docx":
+        try:
+            from docx2pdf import convert as docx2pdf_convert
+            docx2pdf_convert(file_path, pdf_output)
+            if os.path.exists(pdf_output) and os.path.getsize(pdf_output) > 0:
+                log.info("Converted via docx2pdf: %s → %s",
+                         os.path.basename(file_path), os.path.basename(pdf_output))
+                return pdf_output
+        except ImportError:
+            log.warning("docx2pdf not installed. Run: pip install docx2pdf")
+        except Exception as e:
+            log.error("docx2pdf conversion failed: %s", e)
+
+    log.error("Could not convert %s to PDF. Passing original to extractor.", file_path)
+    return file_path
+
+# ═══════════════════════════════════════════════════════════════════════
 #  STEP 2: EXTRACT PDFs WITH extractor.py
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -1391,7 +1481,7 @@ def extract_documents(original_paths: list, save_dir: str,
                       status_cb=None) -> dict:
     """
     Run extractor.py on each PDF. Returns {"hbl": [list], "mbl": dict}.
-    Saves JSON alongside PDFs.
+    Converts .docx/.doc to PDF first if needed.
     """
     result = {"hbl": [], "mbl": None}
     if not extractor:
@@ -1403,16 +1493,27 @@ def extract_documents(original_paths: list, save_dir: str,
         if status_cb:
             status_cb(f"Extracting: {filename[:40]}...")
 
+        # ── Convert non-PDF files before extraction ──
+        ext = os.path.splitext(pdf_path)[1].lower()
+        if ext in (".docx", ".doc"):
+            if status_cb:
+                status_cb(f"Converting {ext} to PDF: {filename[:40]}...")
+            pdf_path = _convert_to_pdf(pdf_path)
+            filename = os.path.basename(pdf_path)
+
+            # If conversion failed (still not .pdf), skip
+            if not pdf_path.lower().endswith(".pdf"):
+                log.warning("Skipping %s — conversion to PDF failed.", filename)
+                continue
+
         try:
             data = extractor.extract_document(pdf_path)
 
-            # Skip non-BL documents
             if data.get("skip"):
                 log.info("  Skipped non-BL: %s (%s)",
                          filename, data.get("document_title", ""))
                 continue
 
-            # Save JSON
             json_path = os.path.splitext(pdf_path)[0] + ".json"
             with open(json_path, "w", encoding="utf-8") as jf:
                 json.dump(data, jf, indent=2, ensure_ascii=False)
@@ -1429,7 +1530,7 @@ def extract_documents(original_paths: list, save_dir: str,
         except Exception as e:
             log.error("  Extraction failed for %s: %s", filename, e)
 
-        time.sleep(2)  # Rate limit between files
+        time.sleep(2)
 
     return result
 
@@ -2422,15 +2523,28 @@ Return ONLY the JSON array. No explanation, no markdown fences."""
             )
 
             raw = (response.text or "").strip()
+            log.info("AI routing raw response length: %d chars", len(raw))
             clean = raw.replace("```json", "").replace("```", "").strip()
             match_obj = re.search(r'(\[.*\])', clean, re.DOTALL)
             if match_obj:
                 clean = match_obj.group(1)
+            else:
+                log.warning("AI routing: No JSON array found in response. Raw: %s", raw[:500])
 
             try:
                 fields = json.loads(clean)
-            except Exception:
+                log.info("AI routing parsed %d fields for %s", len(fields), cno)
+            except Exception as parse_err:
+                log.error("AI routing JSON parse failed for %s: %s. Raw: %s", cno, parse_err, raw[:500])
                 fields = []
+
+            # ── Fallback: if AI returned empty, use string comparison for this container ──
+            if not fields:
+                log.warning("AI returned empty fields for %s — falling back to string comparison.", cno)
+                fallback = _compare_routing_string({cno: route}, tracking_results)
+                if fallback:
+                    all_routing.append(fallback[0])
+                    continue
 
             # Safe strip and handle Transhipments
             for f in fields:
@@ -2837,9 +2951,11 @@ def go_back_to_list(page: Page):
 # ═══════════════════════════════════════════════════════════════════════
 #  COMPLETE TASK IN JORDEX
 # ═══════════════════════════════════════════════════════════════════════
-
 def complete_task_logic(page: Page, stage: str) -> bool:
-    """Handles task completion interaction (Check shipment → Completed → Save)."""
+    """Handles task completion. Use _complete_task_with_retry for full flow."""
+    if stage == "full":
+        return _complete_task_with_retry(page, max_retries=3)
+
     try:
         if stage == "prepare":
             try:
@@ -2858,13 +2974,32 @@ def complete_task_logic(page: Page, stage: str) -> bool:
                 )
             page.wait_for_timeout(3000)
 
+            # Wait for drawer with retry
+            drawer_open = False
+            for retry in range(3):
+                try:
+                    page.wait_for_selector("textarea, input[placeholder='Task status']",
+                                           state="visible", timeout=5000)
+                    drawer_open = True
+                    break
+                except Exception:
+                    log.warning("Drawer not open, retry %d...", retry + 1)
+                    page.wait_for_timeout(2000)
+                    try:
+                        page.locator("p:text-is('Check shipment')").first.evaluate("el => el.click()")
+                    except Exception:
+                        pass
+
+            if not drawer_open:
+                log.error("Check shipment drawer failed to open after retries")
+                return False
+
             status_input = page.locator('input[placeholder="Task status"]').first
             if status_input.is_visible(timeout=3000):
                 status_input.click()
             else:
                 page.evaluate(
-                    "() => document.querySelector("
-                    "'input[placeholder=\"Task status\"]')?.click()"
+                    "() => document.querySelector('input[placeholder=\"Task status\"]')?.click()"
                 )
             page.wait_for_timeout(1000)
 
@@ -2874,14 +3009,12 @@ def complete_task_logic(page: Page, stage: str) -> bool:
                     completed_option.click()
                 else:
                     page.evaluate(
-                        "() => [...document.querySelectorAll("
-                        "'.el-select-dropdown__item span')]"
+                        "() => [...document.querySelectorAll('.el-select-dropdown__item span')]"
                         ".find(el => el.textContent.trim() === 'Completed')?.click()"
                     )
             except Exception:
                 page.evaluate(
-                    "() => [...document.querySelectorAll("
-                    "'.el-select-dropdown__item span')]"
+                    "() => [...document.querySelectorAll('.el-select-dropdown__item span')]"
                     ".find(el => el.textContent.trim() === 'Completed')?.click()"
                 )
             page.wait_for_timeout(1000)
@@ -2900,22 +3033,253 @@ def complete_task_logic(page: Page, stage: str) -> bool:
 #  PROCESS ONE SHIPMENT (FULL PIPELINE)
 # ═══════════════════════════════════════════════════════════════════════
 
+def merge_hbl_data(hbl_list: list) -> tuple:
+    """
+    Merge multiple HBL extraction results into a unified structure.
+
+    Returns: (merged_hbl_data: dict, hbl_numbers: list, merge_type: str)
+      merge_type: 'single', 'same_hbl', 'same_containers_sum', 'different_containers'
+    """
+    if not hbl_list:
+        return {}, [], "single"
+    if len(hbl_list) == 1:
+        ref = hbl_list[0].get("reference_number", "")
+        return hbl_list[0], [ref] if ref else [], "single"
+
+    # Collect all HBL numbers
+    hbl_numbers = []
+    for h in hbl_list:
+        ref = (h.get("reference_number") or "").strip()
+        if ref and ref not in hbl_numbers:
+            hbl_numbers.append(ref)
+
+    # CASE 1: All HBL numbers identical → use first one
+    if len(hbl_numbers) <= 1:
+        log.info("Multiple HBL files but same HBL number — using first.")
+        return hbl_list[0], hbl_numbers, "same_hbl"
+
+    # Collect all containers across all HBLs
+    all_containers = []
+    for h in hbl_list:
+        for c in h.get("containers", []):
+            cno = (c.get("container_no") or "").strip().upper()
+            if cno:
+                all_containers.append((cno, c))
+
+    # Get unique container numbers
+    unique_cnos = list(dict.fromkeys([cno for cno, _ in all_containers]))
+
+    # CASE 2: Different HBL numbers but ALL share the same container(s) → sum quantities
+    hbl_container_sets = []
+    for h in hbl_list:
+        cnos = set()
+        for c in h.get("containers", []):
+            cn = (c.get("container_no") or "").strip().upper()
+            if cn:
+                cnos.add(cn)
+        hbl_container_sets.append(cnos)
+
+    all_same_containers = all(s == hbl_container_sets[0] for s in hbl_container_sets) if hbl_container_sets else False
+
+    if all_same_containers and len(unique_cnos) > 0:
+        log.info("Multiple HBLs, different numbers, same containers — summing package data.")
+        merged = dict(hbl_list[0])  # copy base structure
+        merged_containers = []
+
+        for target_cno in unique_cnos:
+            # Gather all entries for this container across HBLs
+            entries = [c for cno, c in all_containers if cno == target_cno]
+            if not entries:
+                continue
+
+            base = dict(entries[0])
+            total_qty = 0
+            total_weight = 0.0
+            total_volume = 0.0
+            pkg_type = ""
+
+            for e in entries:
+                # Qty
+                raw_qty = re.sub(r"[^\d.]", "", str(e.get("package_qty") or "0").replace(",", ""))
+                try:
+                    total_qty += int(float(raw_qty)) if raw_qty else 0
+                except ValueError:
+                    pass
+
+                # Weight
+                raw_wt = re.sub(r"[^\d.]", "", str(e.get("gross_weight") or "0").replace(",", ""))
+                try:
+                    total_weight += float(raw_wt) if raw_wt else 0
+                except ValueError:
+                    pass
+
+                # Volume
+                raw_vol = re.sub(r"[^\d.]", "", str(e.get("measurement") or "0").replace(",", ""))
+                try:
+                    total_volume += float(raw_vol) if raw_vol else 0
+                except ValueError:
+                    pass
+
+                # Package type — take first non-empty
+                if not pkg_type:
+                    pkg_type = (e.get("package_type") or "").strip()
+
+            base["package_qty"] = str(total_qty) if total_qty else base.get("package_qty")
+            base["gross_weight"] = f"{total_weight:.3f} KGS" if total_weight else base.get("gross_weight")
+            base["measurement"] = f"{total_volume:.3f} CBM" if total_volume else base.get("measurement")
+            if pkg_type:
+                base["package_type"] = pkg_type
+
+            merged_containers.append(base)
+
+        merged["containers"] = merged_containers
+        return merged, hbl_numbers, "same_containers_sum"
+
+    # CASE 3: Different HBL numbers, different containers → combine all
+    log.info("Multiple HBLs, different numbers, different containers — combining all.")
+    merged = dict(hbl_list[0])
+    combined_containers = []
+    seen_cnos = set()
+
+    for h in hbl_list:
+        for c in h.get("containers", []):
+            cno = (c.get("container_no") or "").strip().upper()
+            if cno and cno not in seen_cnos:
+                combined_containers.append(c)
+                seen_cnos.add(cno)
+
+    merged["containers"] = combined_containers
+    return merged, hbl_numbers, "different_containers"
+
+def _complete_task_with_retry(page: Page, max_retries: int = 3) -> bool:
+    """Click Check shipment, set Completed, Save — with retries for slow-loading drawer."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            log.info("Complete task attempt %d/%d", attempt, max_retries)
+
+            # Wait for loading masks to clear
+            try:
+                page.locator(".el-loading-mask:visible").wait_for(state="hidden", timeout=5000)
+            except Exception:
+                pass
+
+            # Click "Check shipment"
+            clicked = False
+            for sel in [
+                "p:text-is('Check shipment')",
+                ".mf-tasks-title:text-is('Check shipment')",
+            ]:
+                try:
+                    el = page.locator(sel).first
+                    if el.is_visible(timeout=3000):
+                        el.click(timeout=5000)
+                        clicked = True
+                        break
+                except Exception:
+                    continue
+
+            if not clicked:
+                page.evaluate(
+                    "() => [...document.querySelectorAll('p')]"
+                    ".find(el => el.textContent.trim() === 'Check shipment')?.click()"
+                )
+
+            # Wait for drawer to open — textarea is the signal
+            try:
+                page.wait_for_selector("textarea", state="visible", timeout=5000)
+            except Exception:
+                log.warning("Drawer did not open on attempt %d, retrying...", attempt)
+                page.wait_for_timeout(2000)
+                # Force click fallback
+                try:
+                    page.locator("p:text-is('Check shipment')").first.evaluate("el => el.click()")
+                    page.wait_for_selector("textarea", state="visible", timeout=5000)
+                except Exception:
+                    if attempt < max_retries:
+                        page.wait_for_timeout(3000)
+                        continue
+                    else:
+                        log.error("All retries exhausted for opening drawer")
+                        return False
+
+            page.wait_for_timeout(1500)
+
+            # Set status to Completed
+            status_input = page.locator('input[placeholder="Task status"]').first
+            if status_input.is_visible(timeout=3000):
+                status_input.click()
+            else:
+                page.evaluate(
+                    "() => document.querySelector('input[placeholder=\"Task status\"]')?.click()"
+                )
+            page.wait_for_timeout(1000)
+
+            # Select "Completed"
+            sel_ok = False
+            try:
+                opt = page.get_by_text('Completed', exact=True).first
+                if opt.is_visible(timeout=3000):
+                    opt.click()
+                    sel_ok = True
+            except Exception:
+                pass
+            if not sel_ok:
+                page.evaluate(
+                    "() => [...document.querySelectorAll('.el-select-dropdown__item span')]"
+                    ".find(el => el.textContent.trim() === 'Completed')?.click()"
+                )
+            page.wait_for_timeout(1000)
+
+            # Save
+            saved = _click_save(page)
+            if saved:
+                log.info("Complete task succeeded on attempt %d", attempt)
+                return True
+            else:
+                log.warning("Save failed on attempt %d", attempt)
+                if attempt < max_retries:
+                    page.wait_for_timeout(2000)
+                    continue
+                return False
+
+        except Exception as e:
+            log.error("Complete task attempt %d error: %s", attempt, e)
+            if attempt < max_retries:
+                page.wait_for_timeout(3000)
+            else:
+                return False
+
+    return False
 def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
                             shipment_key: str, checked: set, no_doc: dict,
                             log_status) -> str:
     """
-    Returns: 'processed', 'no_doc', or 'skipped'
+    Returns: 'processed', 'no_doc', 'old_doc_support', or 'skipped'
     """
     save_dir = os.path.join(SHIPMENTS_ROOT, shipment_key)
     comparison_path = os.path.join(save_dir, "Comparison_Result.json")
 
-    if shipment_key in checked or shipment_key in no_doc:
-        log.info("Skipping %s — already checked or in no-doc list.", ref_no)
+    # ── Stale no_doc re-check (6 hour window) ──
+    if shipment_key in no_doc:
+        entry = no_doc[shipment_key]
+        last_checked_str = entry.get("last_checked", "")
+        try:
+            last_dt = datetime.fromisoformat(last_checked_str)
+            hours_ago = (datetime.now() - last_dt).total_seconds() / 3600
+            if hours_ago < 6:
+                log.info("Skipping %s — checked %.1f hours ago (< 6h).", ref_no, hours_ago)
+                return "skipped"
+            else:
+                log.info("Re-checking %s — last checked %.1f hours ago.", ref_no, hours_ago)
+        except Exception:
+            pass
+    elif shipment_key in checked:
+        log.info("Skipping %s — already fully checked.", ref_no)
         return "skipped"
 
     # Click to open shipment
     opened = False
-    for click_attempt in range(2):
+    for click_attempt in range(3):
         try:
             row.click(timeout=10000)
             page.wait_for_load_state("load", timeout=30000)
@@ -2924,9 +3288,8 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
             opened = True
             break
         except Exception as e:
-            log.warning("Click attempt %d failed for %s: %s",
-                        click_attempt + 1, ref_no, e)
-            if click_attempt == 0:
+            log.warning("Click attempt %d failed for %s: %s", click_attempt + 1, ref_no, e)
+            if click_attempt < 2:
                 try:
                     row.evaluate("el => el.click()")
                 except Exception:
@@ -2946,27 +3309,35 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
 
         if not docs_found:
             log_status(f"Ref {ref_no}: No documents found.")
+
+            # ── Was in no_doc, still no docs → update timestamp and keep ──
+            if shipment_key in no_doc:
+                log_status(f"Ref {ref_no}: Re-check confirms still no docs.")
+                add_no_doc_entry(no_doc, shipment_key, ref_no, date_str)
+                save_no_doc(no_doc)
+                return "no_doc"
+
             if is_past_date(date_str):
-                log_status(f"Ref {ref_no}: Past date detected. Scraping system data for Old Doc Support...")
+                log_status(f"Ref {ref_no}: Past date. Scraping for Old Doc Support...")
                 if save_dir is None:
                     save_dir = make_shipment_folder(date_str, ref_no)
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir, exist_ok=True)
-                
+
                 system_data = {
                     "Parties": scrape_parties(page),
                     "Carrier": scrape_carrier(page),
                     "Cargo": scrape_cargo(page, ref_no),
                 }
-                
+
                 sys_path = os.path.join(save_dir, "System_Data.json")
                 with open(sys_path, "w", encoding="utf-8") as f:
                     json.dump(system_data, f, indent=2, ensure_ascii=False)
-                
+
                 missing = []
                 carrier_data = system_data.get("Carrier", {})
                 cargo_data = system_data.get("Cargo", [])
-                
+
                 hbl = carrier_data.get("HBL_Number", "").strip()
                 mbl = carrier_data.get("MBL_Number", "").strip()
                 if not hbl and not mbl:
@@ -2975,11 +3346,11 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
                     missing.append("HBL Number")
                 elif not mbl:
                     missing.append("MBL Number")
-                    
+
                 containers = [c.get("Container_No", "").strip() for c in cargo_data if c.get("Container_No", "").strip()]
                 if not containers:
                     missing.append("Container Number")
-                    
+
                 carrier_code = carrier_data.get("Carrier", "").strip()
                 vessel = carrier_data.get("Vessel_Name", "").strip()
                 if not carrier_code and not vessel:
@@ -2988,12 +3359,9 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
                     missing.append("Carrier")
                 elif not vessel:
                     missing.append("Vessel")
-                    
-                if missing:
-                    comment = ", ".join(missing) + " and Documents Not Available"
-                else:
-                    comment = "No Documents Available"
-                    
+
+                comment = (", ".join(missing) + " and Documents Not Available") if missing else "No Documents Available"
+
                 res_data = {
                     "comment": comment,
                     "status": "pending_old_doc_support",
@@ -3004,7 +3372,7 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
                 res_path = os.path.join(save_dir, "result.json")
                 with open(res_path, "w", encoding="utf-8") as f:
                     json.dump(res_data, f, indent=2, ensure_ascii=False)
-                    
+
                 add_no_doc_entry(no_doc, shipment_key, ref_no, date_str, old_doc_support=True)
                 save_no_doc(no_doc)
                 return "old_doc_support"
@@ -3013,18 +3381,24 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
                 save_no_doc(no_doc)
                 return "no_doc"
 
+        # ── If was in no_doc but now has docs → remove from no_doc ──
+        if shipment_key in no_doc:
+            log_status(f"Ref {ref_no}: Documents found on re-check! Processing fully.")
+            remove_no_doc_entry(no_doc, shipment_key)
+            save_no_doc(no_doc)
+
         write_processing_log(save_dir, ref_no, date_str, "docs_downloaded",
                              f"{len(original_paths)} original files")
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
-        # STEP 2: Start Document Extraction (Background Thread)
-        log_status(f"Ref {ref_no}: Starting document extraction in background...")
+        # STEP 2: Document Extraction (background)
+        log_status(f"Ref {ref_no}: Starting document extraction...")
         extraction_future = executor.submit(
             extract_documents, original_paths, save_dir, log_status
         )
 
-        # STEP 3: DOM-scrape System Data from Jordex
+        # STEP 3: DOM-scrape System Data
         log_status(f"Ref {ref_no}: Scraping Jordex system data...")
         system_data = {
             "Parties": scrape_parties(page),
@@ -3037,12 +3411,13 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
             json.dump(system_data, f, indent=2, ensure_ascii=False)
         write_processing_log(save_dir, ref_no, date_str, "system_scraped")
 
-        # STEP 4: Start Carrier Tracking (Background Threads)
+        # ── Identify PRIMARY container (first in Jordex cargo list) ──
         all_container_nos = [
             c.get("Container_No", "").strip()
             for c in system_data.get("Cargo", [])
             if c.get("Container_No", "").strip()
         ]
+        primary_container = all_container_nos[0] if all_container_nos else None
 
         carrier_str = system_data.get("Carrier", {}).get("Carrier", "")
         matched_carrier = None
@@ -3051,15 +3426,17 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
 
         hbl_data = {}
         mbl_data = {}
+        hbl_numbers = []
+        merge_type = "single"
         extraction_done = False
 
-        # If we couldn't match carrier from Jordex, we must wait for extraction to use MBL
+        # If carrier not matched from Jordex, wait for extraction
         if Tracking and not matched_carrier:
-            log_status(f"Ref {ref_no}: Carrier '{carrier_str}' not matched. Waiting for extraction to check MBL...")
+            log_status(f"Ref {ref_no}: Carrier '{carrier_str}' not matched. Waiting for extraction...")
             try:
                 extraction = extraction_future.result(timeout=300)
-                hbl_data = extraction["hbl"][0] if extraction["hbl"] else {}
-                mbl_data = extraction["mbl"] or {}
+                hbl_list = extraction.get("hbl", [])
+                mbl_data = extraction.get("mbl") or {}
                 extraction_done = True
                 write_processing_log(save_dir, ref_no, date_str, "extracted")
                 mbl_carrier = mbl_data.get("carrier_name", "")
@@ -3067,72 +3444,97 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
             except Exception as e:
                 log.error(f"Extraction failed for {ref_no}: {e}")
 
+        # STEP 4: Tracking — ONLY primary container
         tracking_futures = {}
-        resolved_carrier = _normalize_carrier_name(matched_carrier)
-        if resolved_carrier == "OOCL":
-            log_status(f"Ref {ref_no}: Carrier resolved as OOCL. Skipping Playwright tracking threads (must do manually).")
-        elif matched_carrier and matched_carrier.upper() in SUPPORTED_CARRIERS and all_container_nos and Tracking:
-            log_status(f"Ref {ref_no}: Starting tracking in parallel...")
-            for cno in all_container_nos:
-                log_status(f"Ref {ref_no}: Queuing tracking for {cno}")
-                tracking_futures[cno] = executor.submit(
-                    Tracking.track_shipment_thread_safe, matched_carrier, cno, save_dir, log_status
-                )
+        resolved_carrier = _normalize_carrier_name(matched_carrier) if matched_carrier else ""
 
-        # STEP 5: Scrape routing on main thread
+        if resolved_carrier == "OOCL":
+            log_status(f"Ref {ref_no}: OOCL — skipping auto tracking.")
+        elif matched_carrier and matched_carrier.upper() in SUPPORTED_CARRIERS and primary_container and Tracking:
+            log_status(f"Ref {ref_no}: Tracking primary container {primary_container} only.")
+            tracking_futures[primary_container] = executor.submit(
+                Tracking.track_shipment_thread_safe, matched_carrier,
+                primary_container, save_dir, log_status
+            )
+
+        # STEP 5: Scrape routing
         log_status(f"Ref {ref_no}: Scraping routing data...")
         routing_data = scrape_routing(page, save_dir, all_container_nos)
         write_processing_log(save_dir, ref_no, date_str, "routing_scraped")
 
-        # STEP 6: Wait for Background Threads and Compare
-        log_status(f"Ref {ref_no}: Waiting for background tasks to complete...")
-        
+        # STEP 6: Wait for background tasks
+        log_status(f"Ref {ref_no}: Waiting for background tasks...")
+
         if not extraction_done:
             try:
                 extraction = extraction_future.result(timeout=300)
-                hbl_data = extraction["hbl"][0] if extraction["hbl"] else {}
-                mbl_data = extraction["mbl"] or {}
                 write_processing_log(save_dir, ref_no, date_str, "extracted")
             except Exception as e:
                 log.error(f"Extraction failed for {ref_no}: {e}")
+                extraction = {"hbl": [], "mbl": None}
+
+        # ── Merge multiple HBLs ──
+        hbl_list = extraction.get("hbl", [])
+        mbl_data = extraction.get("mbl") or {}
+
+        if hbl_list:
+            hbl_data, hbl_numbers, merge_type = merge_hbl_data(hbl_list)
+            log_status(f"Ref {ref_no}: HBL merge type: {merge_type}, HBL count: {len(hbl_list)}, unique numbers: {hbl_numbers}")
+        else:
+            hbl_data = {}
+            hbl_numbers = []
 
         tracking_results = {}
         for cno, fut in tracking_futures.items():
             try:
                 tracking_results[cno] = fut.result(timeout=300)
             except Exception as e:
-                log.error(f"Tracking thread failed for {cno}: {e}")
+                log.error(f"Tracking failed for {cno}: {e}")
 
         executor.shutdown(wait=False)
 
-        # Save extraction data for potential re-comparisons
+        # Save extraction data
         extract_path = os.path.join(save_dir, "Extraction_Data.json")
         try:
             with open(extract_path, "w", encoding="utf-8") as f:
-                json.dump({"hbl": hbl_data, "mbl": mbl_data}, f, indent=2, ensure_ascii=False)
+                json.dump({
+                    "hbl": hbl_data, "mbl": mbl_data,
+                    "all_hbls": hbl_list,
+                    "hbl_numbers": hbl_numbers,
+                    "merge_type": merge_type,
+                }, f, indent=2, ensure_ascii=False)
         except Exception as e:
             log.error("Failed to write Extraction_Data.json: %s", e)
 
-        # Check for Direct File
-        is_direct_file = not bool(extraction.get("hbl"))
+        # Direct file detection
+        is_direct_file = not bool(hbl_list)
         if is_direct_file:
-            log_status(f"Ref {ref_no}: Detected as DIRECT FILE (MBL only). Using MBL for comparison.")
+            log_status(f"Ref {ref_no}: DIRECT FILE (MBL only).")
             hbl_data = mbl_data.copy()
-        else:
-            log_status(f"Ref {ref_no}: House BL detected. Strictly using HBL for comparison.")
 
-        # 7. Do comparison
+        # STEP 7: Comparison
         log_status(f"Ref {ref_no}: Running AI comparison...")
         comparison = compare_data(
             system_data, hbl_data, mbl_data,
             tracking_results, routing_data, is_direct_file
         )
 
+        # ── Routing comparison only for primary container ──
         log_status(f"Ref {ref_no}: Running routing comparison...")
-        routing_result = _compare_routing_with_ai(routing_data, tracking_results)
+        if primary_container and primary_container in routing_data:
+            primary_routing = {primary_container: routing_data[primary_container]}
+        else:
+            primary_routing = routing_data
+        routing_result = _compare_routing_with_ai(primary_routing, tracking_results)
         comparison["Routing"] = routing_result
+
         if is_direct_file:
             comparison["Shipment_Type"] = "DIRECT File"
+
+        # ── Store multi-HBL number for carrier tab ──
+        if len(hbl_numbers) > 1:
+            comparison["multi_hbl_numbers"] = "/".join(hbl_numbers)
+            comparison["merge_type"] = merge_type
 
         comparison_path = os.path.join(save_dir, "Comparison_Result.json")
         try:
@@ -3143,21 +3545,18 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
 
         write_processing_log(save_dir, ref_no, date_str, "compared", "AI")
         write_processing_log(save_dir, ref_no, date_str, "completed")
-        log_status(f"Ref {ref_no}: Processing fully complete.")
+        log_status(f"Ref {ref_no}: Processing complete.")
 
-        # Mark as checked
         checked.add(shipment_key)
         save_checked(checked)
         remove_no_doc_entry(no_doc, shipment_key)
         save_no_doc(no_doc)
 
-        log_status(f"Ref {ref_no}: Scrape complete (tracking running in background).")
         return "processed"
 
     finally:
         go_back_to_list(page)
         page.wait_for_timeout(2000)
-
 
 # ═══════════════════════════════════════════════════════════════════════
 #  UPDATE QUEUE (called from Documents page)
@@ -3286,20 +3685,24 @@ def _process_update_in_slot(slot: dict, item: dict):
             return
 
         # ── COMPLETE action ──
+        # ── COMPLETE action ──
         if action == "complete":
             _log_update("Marking as Completed...")
-            complete_task_logic(page, "prepare")
-            complete_task_logic(page, "commit")
-            _log_update("Completed.")
-            _update_status[folder]["status"] = "completed"
+            ok = _complete_task_with_retry(page, max_retries=3)
+            if ok:
+                _log_update("Completed.")
+                _update_status[folder]["status"] = "completed"
+            else:
+                _log_update("Complete failed after retries.")
+                _update_status[folder]["status"] = "failed"
 
-        # ── UPDATE action ──
+        # ── UPDATE action (no status change) ──
         elif action == "update":
             _run_field_updates(page, folder, fields, _log_update)
             _update_status[folder]["status"] = "completed"
             _log_update("Update complete.")
             _update_comparison_json(folder, fields, _log_update)
-            
+
         # ── UPDATE_AND_COMPLETE action ──
         elif action == "update_and_complete":
             if fields:
@@ -3307,10 +3710,13 @@ def _process_update_in_slot(slot: dict, item: dict):
                 _run_field_updates(page, folder, fields, _log_update)
                 _update_comparison_json(folder, fields, _log_update)
             _log_update("Marking as Completed...")
-            complete_task_logic(page, "prepare")
-            complete_task_logic(page, "commit")
-            _log_update("Update and complete finished.")
-            _update_status[folder]["status"] = "completed"
+            ok = _complete_task_with_retry(page, max_retries=3)
+            if ok:
+                _log_update("Update and complete finished.")
+                _update_status[folder]["status"] = "completed"
+            else:
+                _log_update("Complete step failed after retries.")
+                _update_status[folder]["status"] = "failed"
 
     except Exception as e:
         log.error("Update failed for %s in browser %d: %s", folder, slot["id"] + 1, e)
@@ -4872,13 +5278,13 @@ def _run_update_queue():
 # ═══════════════════════════════════════════════════════════════════════
 #  MAIN ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════
-
 def main(status_callback=None, headless=False, cancel_event_ext=None):
     """
     Autonomous processing loop.
-    - no_doc_mode: when True, ONLY processes no_doc.json entries
-    - ai_comparison: when True, uses Gemini for comparison
-    - 15 shipment cap per run
+    Modes:
+      - normal: scan date window, process new shipments
+      - no_doc_mode: re-check no_doc.json entries
+      - old_file_mode: scan past dates, skip OIs that have docs, push no-doc ones to queue
     """
     global SESSION_ID, cancel_event
 
@@ -4899,20 +5305,19 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
 
     slot = _browser_pool.acquire()
     if not slot:
-        log_status("No browser available. Skipping autonomous run.")
+        log_status("No browser available. Skipping.")
         return
 
     try:
         if not _browser_pool.ensure_slot_ready(slot):
-            log_status("Failed to ready browser. Skipping autonomous run.")
+            log_status("Failed to ready browser. Skipping.")
             return
-            
+
         page = slot["page"]
-        
+
         log_status("Applying filters...")
         apply_filters(page, status_callback=status_callback)
 
-        # Apply date range if custom
         custom_start = settings.get("date_start")
         custom_end = settings.get("date_end")
         if custom_start and custom_end:
@@ -4932,13 +5337,247 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
 
         date_window = build_date_window()
         no_doc_mode = settings.get("no_doc_mode", False)
+        old_file_mode = settings.get("old_file_mode", False)
 
         log_status(f"Date window: {date_window}")
-        log_status(f"Mode: {'NO_DOC ONLY' if no_doc_mode else 'NORMAL'}")
-        log_status(f"AI Comparison: {'ON' if settings.get('ai_comparison') else 'OFF'}")
+        log_status(f"Mode: {'OLD_FILE' if old_file_mode else 'NO_DOC' if no_doc_mode else 'NORMAL'}")
 
-        # ── NO_DOC MODE: process only no_doc entries ──
-    
+        # ══════════════════════════════════════════════
+        #  OLD FILE MODE
+        # ══════════════════════════════════════════════
+        if old_file_mode:
+            log_status("Phase: Old File Mode — scanning ALL rows page by page...")
+
+            go_to_first_page(page)
+            page_num = 1
+            total_pages_scanned = 0
+            max_pages = 20  # safety limit
+
+            while processed_count < MAX_PROCESSED and total_pages_scanned < max_pages:
+                if cancel_event and cancel_event.is_set():
+                    raise KeyboardInterrupt()
+
+                log_status(f"--- Old File: Page {page_num} ---")
+                total_pages_scanned += 1
+
+                try:
+                    page.locator(".el-table__body").wait_for(state="visible", timeout=10000)
+                except Exception:
+                    pass
+
+                # Get ALL visible rows on this page (no date filter)
+                all_rows = []
+                for sel in [
+                    ".el-table__body tr",
+                    ".el-table__body .el-table__row",
+                    "table tbody tr",
+                ]:
+                    try:
+                        rows = page.locator(sel).all()
+                        visible = [r for r in rows if r.is_visible()]
+                        if visible:
+                            all_rows = visible
+                            break
+                    except Exception:
+                        continue
+
+                if not all_rows:
+                    log_status(f"  No rows on page {page_num}, stopping.")
+                    break
+
+                log_status(f"  {len(all_rows)} row(s) on page {page_num}")
+
+                for index in range(len(all_rows)):
+                    if processed_count >= MAX_PROCESSED or (cancel_event and cancel_event.is_set()):
+                        break
+
+                    opened_shipment = False
+
+                    try:
+                        # Re-fetch rows (DOM may have changed after go_back_to_list)
+                        current_rows = []
+                        for sel in [
+                            ".el-table__body tr",
+                            ".el-table__body .el-table__row",
+                            "table tbody tr",
+                        ]:
+                            try:
+                                rows = page.locator(sel).all()
+                                visible = [r for r in rows if r.is_visible()]
+                                if visible:
+                                    current_rows = visible
+                                    break
+                            except Exception:
+                                continue
+
+                        if not current_rows or index >= len(current_rows):
+                            log_status(f"  Row index {index} out of range, breaking.")
+                            break
+
+                        row = current_rows[index]
+                        row.scroll_into_view_if_needed(timeout=10000)
+                        ref_no = extract_ref_number(row).strip()
+
+                        if ref_no == "UNKNOWN_REF":
+                            continue
+
+                        # Extract date from row text for folder naming
+                        row_text = ""
+                        try:
+                            row_text = row.inner_text(timeout=2000).strip()
+                        except Exception:
+                            pass
+
+                        # Find which date from our window matches this row
+                        row_date_str = ""
+                        for dw in date_window:
+                            if dw in row_text:
+                                row_date_str = dw
+                                break
+
+                        # Fallback: try to extract date from DUE DATE column
+                        if not row_date_str:
+                            try:
+                                cells = row.locator("td").all()
+                                if cells:
+                                    last_cell_text = cells[-1].inner_text(timeout=1000).strip()
+                                    for dw in date_window:
+                                        if dw in last_cell_text:
+                                            row_date_str = dw
+                                            break
+                            except Exception:
+                                pass
+
+                        if not row_date_str:
+                            # Use first date in window as fallback
+                            row_date_str = date_window[0] if date_window else "unknown"
+
+                        shipment_key = f"{row_date_str.replace(' ', '-')}__{ref_no}"
+
+                        if shipment_key in checked or shipment_key in no_doc:
+                            log_status(f"  [{index+1}] {ref_no} ({row_date_str}): Already checked/no-doc — skipping.")
+                            continue
+
+                        log_status(f"  [{index+1}] {ref_no} ({row_date_str}): Opening to check docs...")
+
+                        # Open shipment
+                        try:
+                            row.click(timeout=10000)
+                            page.wait_for_load_state("load", timeout=30000)
+                            _apply_zoom(page)
+                            page.get_by_text("Parties", exact=True).first.wait_for(
+                                state="visible", timeout=15000
+                            )
+                            opened_shipment = True
+                        except Exception as e:
+                            log.warning("Could not open %s: %s", ref_no, e)
+
+                        if not opened_shipment:
+                            go_back_to_list(page)
+                            page.wait_for_timeout(2000)
+                            continue
+
+                        # Check Documents tab
+                        has_docs = False
+                        try:
+                            doc_tab = page.get_by_text("Documents", exact=True)
+                            doc_tab.scroll_into_view_if_needed()
+                            doc_tab.click()
+                            page.wait_for_timeout(2000)
+
+                            for _ in range(5):
+                                rows_check = page.locator(
+                                    "table tr:has-text('House'), table tr:has-text('Master')"
+                                ).all()
+                                if rows_check:
+                                    has_docs = True
+                                    break
+                                page.wait_for_timeout(1000)
+
+                        except Exception as e:
+                            log.warning("Doc tab check failed for %s: %s", ref_no, e)
+
+                        if has_docs:
+                            log_status(f"  {ref_no}: Has documents — SKIPPING.")
+                            go_back_to_list(page)
+                            page.wait_for_timeout(2000)
+                            continue
+
+                        # No docs → scrape system data and build comment
+                        log_status(f"  {ref_no}: No documents. Building Old Doc entry...")
+                        save_dir = make_shipment_folder(row_date_str, ref_no)
+
+                        system_data = {
+                            "Parties": scrape_parties(page),
+                            "Carrier": scrape_carrier(page),
+                            "Cargo": scrape_cargo(page, ref_no),
+                        }
+
+                        sys_path = os.path.join(save_dir, "System_Data.json")
+                        with open(sys_path, "w", encoding="utf-8") as f:
+                            json.dump(system_data, f, indent=2, ensure_ascii=False)
+
+                        missing = []
+                        cd = system_data.get("Carrier", {})
+                        cg = system_data.get("Cargo", [])
+
+                        if not cd.get("HBL_Number", "").strip() and not cd.get("MBL_Number", "").strip():
+                            missing.append("HBL, MBL Number")
+                        elif not cd.get("HBL_Number", "").strip():
+                            missing.append("HBL Number")
+                        elif not cd.get("MBL_Number", "").strip():
+                            missing.append("MBL Number")
+
+                        if not any(c.get("Container_No", "").strip() for c in cg):
+                            missing.append("Container Number")
+                        if not cd.get("Carrier", "").strip():
+                            missing.append("Carrier")
+                        if not cd.get("Vessel_Name", "").strip():
+                            missing.append("Vessel")
+
+                        comment = (", ".join(missing) + " and Documents Not Available") if missing else "No Documents Available"
+
+                        res_data = {
+                            "comment": comment,
+                            "status": "pending_old_doc_support",
+                            "ref_no": ref_no,
+                            "date_str": row_date_str,
+                            "processed_at": datetime.now().isoformat()
+                        }
+                        with open(os.path.join(save_dir, "result.json"), "w", encoding="utf-8") as f:
+                            json.dump(res_data, f, indent=2, ensure_ascii=False)
+
+                        add_no_doc_entry(no_doc, shipment_key, ref_no, row_date_str, old_doc_support=True)
+                        save_no_doc(no_doc)
+
+                        processed_count += 1
+                        log_status(f"  [{processed_count}/{MAX_PROCESSED}] {ref_no}: Queued as Old Doc.")
+
+                        go_back_to_list(page)
+                        page.wait_for_timeout(2000)
+
+                    except Exception as e:
+                        log.warning("Old file row %d error: %s", index + 1, e)
+                        if opened_shipment:
+                            go_back_to_list(page)
+                            page.wait_for_timeout(2000)
+
+                if processed_count >= MAX_PROCESSED:
+                    break
+
+                # Move to next page
+                if try_next_page(page):
+                    page_num += 1
+                else:
+                    log_status(f"  No more pages after page {page_num}.")
+                    break
+
+            log_status(f"Old File mode complete. Queued {processed_count} entries.")
+            return
+
+        # ══════════════════════════════════════════════
+        #  NO_DOC MODE
+        # ══════════════════════════════════════════════
         if no_doc_mode:
             if not no_doc:
                 log_status("No-doc mode: no entries to re-check.")
@@ -4952,41 +5591,35 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                         raise KeyboardInterrupt()
 
                     entry = no_doc[shipment_key]
-                    ref_no  = entry["ref"]
+                    ref_no = entry["ref"]
                     date_str = entry["date"]
 
-                    # ── REMOVED: date_window filter (search works regardless of date) ──
-                    log_status(f"Re-checking {ref_no} (date: {date_str}) via search...")
+                    log_status(f"Re-checking {ref_no} (date: {date_str})...")
 
-                    # Clear any existing search/filter state first
                     try:
                         apply_filters(page, status_callback=status_callback)
                         page.wait_for_timeout(2000)
                         try:
-                            page.locator(".el-loading-mask").wait_for(
-                                state="hidden", timeout=10000
-                            )
+                            page.locator(".el-loading-mask").wait_for(state="hidden", timeout=10000)
                         except Exception:
                             pass
-                    except Exception as fe:
-                        log.warning("Filter reset failed: %s", fe)
+                    except Exception:
+                        pass
 
                     opened = search_and_open_shipment(page, ref_no, date_str, log_fn=log_status)
                     if not opened:
-                        log_status(f"  {ref_no}: Not found via search — keeping in no-doc.")
+                        log_status(f"  {ref_no}: Not found — keeping in no-doc.")
                         add_no_doc_entry(no_doc, shipment_key, ref_no, date_str)
                         save_no_doc(no_doc)
                         continue
 
-                    # ── Full pipeline (same as before) ──
                     try:
-                        log_status(f"Ref {ref_no}: Checking documents (no-doc retry)...")
                         docs_found, original_paths, save_dir = process_shipment_documents(
                             page, date_str, ref_no
                         )
 
                         if not docs_found:
-                            log_status(f"Ref {ref_no}: Still no documents.")
+                            log_status(f"  {ref_no}: Still no documents.")
                             add_no_doc_entry(no_doc, shipment_key, ref_no, date_str)
                             save_no_doc(no_doc)
                             go_back_to_list(page)
@@ -4994,22 +5627,23 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                             continue
 
                         write_processing_log(save_dir, ref_no, date_str, "docs_downloaded",
-                                            f"{len(original_paths)} original files")
+                                             f"{len(original_paths)} original files")
 
-                        log_status(f"Ref {ref_no}: Extracting documents...")
-                        extraction = extract_documents(original_paths, save_dir,
-                                                    status_cb=log_status)
-                        hbl_data = extraction["hbl"][0] if extraction["hbl"] else {}
-                        mbl_data = extraction["mbl"] or {}
+                        extraction = extract_documents(original_paths, save_dir, status_cb=log_status)
+                        hbl_list = extraction.get("hbl", [])
+                        mbl_data = extraction.get("mbl") or {}
 
-                        log_status(f"Ref {ref_no}: Scraping Jordex system data...")
+                        if hbl_list:
+                            hbl_data, hbl_numbers, merge_type = merge_hbl_data(hbl_list)
+                        else:
+                            hbl_data = {}
+
                         system_data = {
-                            "Parties":  scrape_parties(page),
-                            "Carrier":  scrape_carrier(page),
-                            "Cargo":    scrape_cargo(page, ref_no),
+                            "Parties": scrape_parties(page),
+                            "Carrier": scrape_carrier(page),
+                            "Cargo": scrape_cargo(page, ref_no),
                         }
-                        with open(os.path.join(save_dir, "System_Data.json"),
-                                "w", encoding="utf-8") as f:
+                        with open(os.path.join(save_dir, "System_Data.json"), "w", encoding="utf-8") as f:
                             json.dump(system_data, f, indent=2, ensure_ascii=False)
 
                         all_container_nos = [
@@ -5017,32 +5651,26 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                             for c in system_data.get("Cargo", [])
                             if c.get("Container_No", "").strip()
                         ]
+                        primary_container = all_container_nos[0] if all_container_nos else None
 
                         carrier_str = system_data.get("Carrier", {}).get("Carrier", "")
-                        matched_carrier = None
-                        if Tracking:
-                            matched_carrier = Tracking.find_carrier_code(carrier_str)
-                            if not matched_carrier and mbl_data:
-                                matched_carrier = Tracking.find_carrier_code(
-                                    mbl_data.get("carrier_name", "")
-                                )
+                        matched_carrier = Tracking.find_carrier_code(carrier_str) if Tracking else None
+                        if not matched_carrier and mbl_data and Tracking:
+                            matched_carrier = Tracking.find_carrier_code(mbl_data.get("carrier_name", ""))
 
+                        # Track only primary container
                         tracking_results = {}
+                        if (matched_carrier and primary_container and Tracking
+                                and matched_carrier.upper() in SUPPORTED_CARRIERS
+                                and _normalize_carrier_name(matched_carrier) != "OOCL"):
+                            log_status(f"  {ref_no}: Tracking {primary_container}...")
+                            try:
+                                tracking_results[primary_container] = Tracking.track_shipment_thread_safe(
+                                    matched_carrier, primary_container, save_dir, log_status
+                                )
+                            except Exception as te:
+                                log.error("Tracking failed: %s", te)
 
-                        # Launch tracking and comparison in the background
-                        run_background_tracking_and_comparison(
-                            matched_carrier=matched_carrier,
-                            all_container_nos=all_container_nos,
-                            save_dir=save_dir,
-                            system_data=system_data,
-                            hbl_data=hbl_data,
-                            mbl_data=mbl_data,
-                            ref_no=ref_no,
-                            date_str=date_str,
-                            log_status_fn=log_status
-                        )
-
-                        log_status(f"Ref {ref_no}: Scraping routing (parallel with tracking)...")
                         routing_data = scrape_routing(page, save_dir, all_container_nos)
                         write_processing_log(save_dir, ref_no, date_str, "routing_scraped")
 
@@ -5052,10 +5680,7 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                         save_no_doc(no_doc)
 
                         processed_count += 1
-                        log_status(
-                            f"[{processed_count}/{MAX_PROCESSED}] "
-                            f"{ref_no} scrape complete (tracking running in background)."
-                        )
+                        log_status(f"  [{processed_count}/{MAX_PROCESSED}] {ref_no} done.")
 
                     except Exception as e:
                         log.error("No-doc retry failed for %s: %s", ref_no, e)
@@ -5066,7 +5691,10 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
 
             log_status(f"No-doc mode complete. Processed {processed_count}.")
             return
-        # ── NORMAL MODE: scan date window ──
+
+        # ══════════════════════════════════════════════
+        #  NORMAL MODE
+        # ══════════════════════════════════════════════
         log_status("Phase: Scanning date window for new shipments...")
 
         go_to_first_page(page)
@@ -5081,9 +5709,7 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
             log_status(f"--- Date: {date_str} ({date_idx + 1}/{len(date_window)}) | Page {page_num} ---")
 
             try:
-                page.locator(".el-table__body").wait_for(
-                    state="visible", timeout=10000
-                )
+                page.locator(".el-table__body").wait_for(state="visible", timeout=10000)
             except Exception:
                 pass
 
@@ -5124,8 +5750,8 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                     page.wait_for_timeout(2000)
                     continue
 
-                if shipment_key in checked or shipment_key in no_doc:
-                    log_status(f"  Row [{index + 1}/{rows_count}]: {ref_no} already checked or in no-doc. Skipping.")
+                # Skip already-checked; stale no_doc handled inside process_single_shipment
+                if shipment_key in checked:
                     continue
 
                 result = process_single_shipment(
@@ -5144,7 +5770,9 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                 page_num += 1
                 continue
             else:
-                break
+                date_idx += 1
+                page_num = 1
+                go_to_first_page(page)
 
     except KeyboardInterrupt:
         log.info("Shutdown requested.")
@@ -5154,26 +5782,25 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
         traceback.print_exc()
         try:
             page.screenshot(path="shipment_process_error.png")
-        except:
+        except Exception:
             pass
     finally:
         log_status(f"Complete. Processed {processed_count} shipment(s).")
         log_status(f"No-doc: {len(no_doc)}, Checked: {len(checked)}")
-        
+
         try:
             go_back_to_list(page)
             page.wait_for_timeout(2000)
         except Exception:
             pass
-            
+
         try:
             slot["page"].context.close()
         except Exception:
             pass
         slot["page"] = None
-        
-        _browser_pool.release(slot)
 
+        _browser_pool.release(slot)
 
 def recompare_shipment_with_ai(shipment_key: str) -> dict:
     """

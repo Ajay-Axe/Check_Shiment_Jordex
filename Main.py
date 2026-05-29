@@ -637,7 +637,7 @@ async def get_settings():
 @app.post("/api/settings")
 async def update_settings(request: Request):
     body = await request.json()
-    allowed_keys = {"no_doc_mode", "date_start", "date_end"}
+    allowed_keys = {"ai_comparison", "no_doc_mode", "old_file_mode", "date_start", "date_end"}
     updates = {k: v for k, v in body.items() if k in allowed_keys}
     sp.save_settings(updates)
     _add_log(f"Settings updated: {updates}")
@@ -1146,6 +1146,31 @@ async def carrier_list():
             "EVERGREEN", "COSCO", "HMM", "OOCL",
         ]
     }
+
+@app.post("/api/queue/update-only")
+async def queue_update_only():
+    """Submit all queue items as UPDATE only (no status change)."""
+    q = sp.load_queue()
+    if not q:
+        return {"status": "empty", "message": "Queue is empty"}
+    for folder, item in q.items():
+        sp.queue_update(folder, item.get("fields", {}), action="update")
+    sp.save_queue({})
+    return {"status": "queued", "message": f"{len(q)} items queued for update-only"}
+
+
+@app.post("/api/queue/submit-complete")
+async def queue_submit_complete():
+    """Submit all queue items as UPDATE + COMPLETE."""
+    q = sp.load_queue()
+    if not q:
+        return {"status": "empty", "message": "Queue is empty"}
+    for folder, item in q.items():
+        sp.queue_update(folder, item.get("fields", {}), action="update_and_complete")
+    sp.save_queue({})
+    return {"status": "queued", "message": f"{len(q)} items queued for update+complete"}
+
+
 
 @app.get("/api/pool/status")
 async def pool_status():

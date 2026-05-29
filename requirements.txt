@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+jinja2
+playwright
+python-dotenv
+requests
+scrapling
+google-genai
+docx2pdf
