@@ -2,8 +2,11 @@ fastapi
 uvicorn
 jinja2
 playwright
+playwright-stealth
 python-dotenv
 requests
 scrapling
 google-genai
 docx2pdf
+libreoffice-convert
+json-repair

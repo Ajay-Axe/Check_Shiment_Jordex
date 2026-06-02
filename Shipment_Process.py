@@ -166,7 +166,7 @@ CONTAINER_TYPE_MAP = {
 PACKAGE_TYPE_MAP = {
     "PKG": "Package", "PKGS": "Package", "PK": "Package",
     "PACKAGE": "Package", "PACKAGES": "Package",
-    "CTN": "Carton", "CTNS": "Carton", "CARTONS": "Carton", "CARTON": "Carton",
+    "CTN": "Carton", "CTNS": "Carton", "CARTONS": "Carton", "CARTON": "Carton", "CARTON(S)": "Carton",
     "PLT": "Pallet", "PLTS": "Pallet", "PALLETS": "Pallet", "PALLET": "Pallet",
     "BOX": "Box", "BOXES": "Box",
     "CRT": "Crate", "CRATES": "Crate", "CRATE": "Crate",
@@ -404,6 +404,9 @@ def _normalize_pkg_type(raw: str) -> str:
     v = str(raw).strip().upper()
     if v in PACKAGE_TYPE_MAP:
         return PACKAGE_TYPE_MAP[v]
+    # Strip trailing S for plural forms not in map
+    if v.endswith("S") and v[:-1] in PACKAGE_TYPE_MAP:
+        return PACKAGE_TYPE_MAP[v[:-1]]
     return v.title() if v else "Package"
 
 
@@ -1506,9 +1509,20 @@ def extract_documents(original_paths: list, save_dir: str,
                 log.warning("Skipping %s — conversion to PDF failed.", filename)
                 continue
 
-        try:
-            data = extractor.extract_document(pdf_path)
+        data = None
+        for attempt in range(3):
+            try:
+                data = extractor.extract_document(pdf_path)
+                if data:
+                    break
+            except Exception as e:
+                log.error("  Extraction failed for %s on attempt %d: %s", filename, attempt + 1, e)
+                time.sleep(2)
 
+        if not data:
+            continue
+
+        try:
             if data.get("skip"):
                 log.info("  Skipped non-BL: %s (%s)",
                          filename, data.get("document_title", ""))
@@ -1528,7 +1542,7 @@ def extract_documents(original_paths: list, save_dir: str,
             log.info("  Extracted: %s -> %s", filename, doc_type)
 
         except Exception as e:
-            log.error("  Extraction failed for %s: %s", filename, e)
+            log.error("  Error processing extracted data for %s: %s", filename, e)
 
         time.sleep(2)
 
@@ -2242,6 +2256,7 @@ def _compare_string(system_data: dict, hbl_data: dict, mbl_data: dict,
         lane = route.get("Lane", {})
         routing_entry = {"container": cno, "fields": []}
 
+        has_on_carriage = bool(track.get("carrier_on_carriage"))
         route_pairs = [
             ("Departure", lane.get("Departure_Update") or lane.get("Departure_Original", ""),
              track.get("etd", "")),
@@ -2253,9 +2268,12 @@ def _compare_string(system_data: dict, hbl_data: dict, mbl_data: dict,
              track.get("pod", "")),
             ("Voyage", lane.get("Voyage", ""),
              track.get("arrival_voyage") or track.get("loaded_voyage", "")),
-            ("Terminal", route.get("Destination", {}).get("Terminal", ""),
-             track.get("pod_terminal", "")),
         ]
+        if not has_on_carriage:
+            route_pairs.append(
+                ("Terminal", route.get("Destination", {}).get("Terminal", ""),
+                 track.get("pod_terminal", ""))
+            )
 
         for field, jdx_val, doc_val in route_pairs:
             status = _field_status(jdx_val, doc_val)
@@ -2337,6 +2355,7 @@ PARTY RULES:
 - Shipper/Consignee/Notify:
   - MATCH if the City, Zip code, and Country match perfectly, even if the Company Name is an abbreviation/short form in one and a full form in the other.
   - MATCH if company name + country match.
+  - MATCH if company name, country, and some address words match (e.g., "Young poong co.,ltd... South Korea" vs "YOUNG POONG CO.,LTD... REP. OF KOREA").
   - MISMATCH ONLY if the entities are factually different or located in different cities/countries.
 - "SAME AS CONSIGNEE" in notify → copy consignee value, compare against system notify.
 
@@ -2390,15 +2409,24 @@ OUTPUT FORMAT (RETURN ONLY VALID JSON):
 
 Return ONLY the JSON. No explanation, no markdown fences."""
 
-        response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL_SMART", "gemini-2.5-flash"),
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1, max_output_tokens=8192
-            ),
-        )
+        import time
+        response = None
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=os.getenv("GEMINI_MODEL_SMART", "gemini-2.5-flash"),
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.1, max_output_tokens=8192
+                    ),
+                )
+                break
+            except Exception as e:
+                if attempt == 2:
+                    raise e
+                time.sleep(2)
 
-        raw = response.text.strip()
+        raw = response.text.strip() if response else ""
         clean = raw.replace("```json", "").replace("```", "").strip()
 
         # Extract JSON
@@ -2459,6 +2487,9 @@ def _compare_routing_with_ai(routing_data: dict, tracking_results: dict) -> list
             if not track:
                 continue
 
+            has_on_carriage = bool(track.get("carrier_on_carriage"))
+            terminal_rule = "SKIP this field entirely — do NOT include Terminal in output at all, because carrier_on_carriage data exists and the actual final delivery point is the on-carriage destination, not the ocean terminal." if has_on_carriage else "Jordex Destination.Terminal vs tracking pod_terminal"
+
             prompt = f"""You are a logistics routing comparator.
 Compare the Jordex routing data for container {cno} against the carrier tracking result.
 
@@ -2483,7 +2514,7 @@ FIELDS TO COMPARE:
 3. Port_of_Loading: Jordex Lane.Port_of_Loading vs tracking pol
 4. Port_of_Discharge: Jordex Lane.Port_of_Discharge vs tracking pod
 5. Voyage: Jordex Lane.Voyage vs tracking arrival_voyage or loaded_voyage
-6. Terminal: Jordex Destination.Terminal vs tracking pod_terminal
+6. Terminal: {terminal_rule}
 
 COMPLEX FIELDS (Transits and On-Carriage):
 If tracking data has `transshipments` or `carrier_on_carriage`, compare them against Jordex `Lane.Transits` and `Lane.Carrier_On_Carriage`.
@@ -2495,7 +2526,7 @@ If tracking data has `transshipments` or `carrier_on_carriage`, compare them aga
   1. {{"field": "Carrier_On_Carriage_Place (<tracking arrival place>)", "document_value": "<tracking place>", "jordex_value": "<jordex place or empty>", "status": "..."}}
   2. {{"field": "Carrier_On_Carriage_Date (<tracking arrival place>)", "document_value": "<tracking date>", "jordex_value": "<jordex date or empty>", "status": "..."}}
 
-DATE RULES: Allow ±1 day tolerance for dates → MATCH. Different dates beyond tolerance → MISMATCH.
+DATE RULES: Dates must match exactly. Any difference in dates (even 1 day) → MISMATCH.
 PORT RULES: Same port city → MATCH even if format differs (e.g., "ROTTERDAM" vs "Rotterdam, Netherlands", or "SHANGHAI" vs "Shanghai Pt, China").
 TERMINAL RULES: A MATCH occurs if the terminal names conceptually refer to the exact same terminal.
 
@@ -2514,15 +2545,24 @@ OUTPUT FORMAT (RETURN ONLY VALID JSON ARRAY):
 
 Return ONLY the JSON array. No explanation, no markdown fences."""
 
-            response = client.models.generate_content(
-                model=os.getenv("GEMINI_MODEL_SMART", "gemini-2.5-flash"),
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.1, max_output_tokens=4096
-                ),
-            )
+            import time
+            response = None
+            for attempt in range(3):
+                try:
+                    response = client.models.generate_content(
+                        model=os.getenv("GEMINI_MODEL_SMART", "gemini-2.5-flash"),
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            temperature=0.1, max_output_tokens=4096
+                        ),
+                    )
+                    break
+                except Exception as e:
+                    if attempt == 2:
+                        raise e
+                    time.sleep(2)
 
-            raw = (response.text or "").strip()
+            raw = (response.text or "").strip() if response else ""
             log.info("AI routing raw response length: %d chars", len(raw))
             clean = raw.replace("```json", "").replace("```", "").strip()
             match_obj = re.search(r'(\[.*\])', clean, re.DOTALL)
@@ -2625,6 +2665,7 @@ def _compare_routing_string(routing_data: dict, tracking_results: dict) -> list:
         lane = route.get("Lane", {})
         routing_entry = {"container": cno, "fields": []}
 
+        has_on_carriage = bool(track.get("carrier_on_carriage"))
         route_pairs = [
             ("Departure", lane.get("Departure_Update") or lane.get("Departure_Original", ""),
              track.get("etd", "")),
@@ -2636,9 +2677,12 @@ def _compare_routing_string(routing_data: dict, tracking_results: dict) -> list:
              track.get("pod", "")),
             ("Voyage", lane.get("Voyage", ""),
              track.get("arrival_voyage") or track.get("loaded_voyage", "")),
-            ("Terminal", route.get("Destination", {}).get("Terminal", ""),
-             track.get("pod_terminal", "")),
         ]
+        if not has_on_carriage:
+            route_pairs.append(
+                ("Terminal", route.get("Destination", {}).get("Terminal", ""),
+                 track.get("pod_terminal", ""))
+            )
 
         for field, jdx_val, doc_val in route_pairs:
             status = _field_status(jdx_val, doc_val)
@@ -3348,7 +3392,12 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
                     missing.append("MBL Number")
 
                 containers = [c.get("Container_No", "").strip() for c in cargo_data if c.get("Container_No", "").strip()]
-                if not containers:
+                # Check load type — LCL shipments don't have container numbers
+                is_lcl_shipment = any(
+                    "LCL" in str(c.get("Load_Type", "")).upper()
+                    for c in cargo_data
+                )
+                if not is_lcl_shipment and not containers:
                     missing.append("Container Number")
 
                 carrier_code = carrier_data.get("Carrier", "").strip()
@@ -3459,9 +3508,16 @@ def process_single_shipment(page: Page, row, ref_no: str, date_str: str,
 
         # STEP 5: Scrape routing
         log_status(f"Ref {ref_no}: Scraping routing data...")
-        routing_data = scrape_routing(page, save_dir, all_container_nos)
+        routing_data = {}
+        for attempt in range(3):
+            try:
+                routing_data = scrape_routing(page, save_dir, all_container_nos)
+                if routing_data:
+                    break
+            except Exception as e:
+                log.warning(f"Routing scrape attempt {attempt + 1} failed: {e}")
+                time.sleep(2)
         write_processing_log(save_dir, ref_no, date_str, "routing_scraped")
-
         # STEP 6: Wait for background tasks
         log_status(f"Ref {ref_no}: Waiting for background tasks...")
 
@@ -4056,7 +4112,7 @@ def _run_field_updates(page, folder: str, fields: dict, _log_update):
                                     }
                                 }""", [vol_val])
 
-                        # Save popup
+                        # Save package popup — try footer buttons first, then generic save
                         try:
                             popup_save = page.locator(
                                 ".mf-form__footer-buttons .el-button--primary"
@@ -4064,15 +4120,29 @@ def _run_field_updates(page, folder: str, fields: dict, _log_update):
                             if popup_save.is_visible(timeout=3000):
                                 popup_save.click()
                                 page.wait_for_timeout(2000)
-                                try:
-                                    ok = page.locator("button:has-text('OK'):visible").first
-                                    if ok.is_visible(timeout=2000):
-                                        ok.click()
-                                        page.wait_for_timeout(1000)
-                                except Exception:
-                                    pass
+                            else:
+                                # Fallback: click any visible primary save button in dialog/panel
+                                dialog_save = page.locator(
+                                    ".el-dialog .el-button--primary, "
+                                    ".el-drawer .el-button--primary, "
+                                    "button.el-button--primary:visible"
+                                ).last
+                                if dialog_save.is_visible(timeout=2000):
+                                    dialog_save.click()
+                                    page.wait_for_timeout(2000)
+                            try:
+                                ok = page.locator("button:has-text('OK'):visible").first
+                                if ok.is_visible(timeout=2000):
+                                    ok.click()
+                                    page.wait_for_timeout(1000)
+                            except Exception:
+                                pass
                         except Exception:
                             pass
+                        # Also click main cargo detail Save after returning from package popup
+                        page.wait_for_timeout(500)
+                        _click_save(page)
+                        page.wait_for_timeout(1000)
 
                     except Exception as pe:
                         _log_update(f"  Package update failed for {cno}: {pe}")
@@ -5528,8 +5598,14 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                         elif not cd.get("MBL_Number", "").strip():
                             missing.append("MBL Number")
 
-                        if not any(c.get("Container_No", "").strip() for c in cg):
-                            missing.append("Container Number")
+                        # Only check container number for FCL — LCL shipments don't have container numbers
+                        is_lcl = any(
+                            "LCL" in str(c.get("Load_Type", "")).upper()
+                            for c in cg
+                        )
+                        if not is_lcl:
+                            if not any(c.get("Container_No", "").strip() for c in cg):
+                                missing.append("Container Number")
                         if not cd.get("Carrier", "").strip():
                             missing.append("Carrier")
                         if not cd.get("Vessel_Name", "").strip():
@@ -5671,7 +5747,15 @@ def main(status_callback=None, headless=False, cancel_event_ext=None):
                             except Exception as te:
                                 log.error("Tracking failed: %s", te)
 
-                        routing_data = scrape_routing(page, save_dir, all_container_nos)
+                        routing_data = {}
+                        for attempt in range(3):
+                            try:
+                                routing_data = scrape_routing(page, save_dir, all_container_nos)
+                                if routing_data:
+                                    break
+                            except Exception as e:
+                                log.warning(f"Routing scrape attempt {attempt + 1} failed: {e}")
+                                time.sleep(2)
                         write_processing_log(save_dir, ref_no, date_str, "routing_scraped")
 
                         checked.add(shipment_key)

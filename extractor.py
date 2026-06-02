@@ -152,23 +152,28 @@ AN INVOICE typically contains:
   - Bill To / addressee section
 
 IF ANY of the above non-BL indicators are found, the document is NOT a BL.
+You MUST still identify the document type. NEVER return "UNKNOWN".
 Return ONLY this JSON and STOP IMMEDIATELY:
 
-  {"document_title": "<TITLE>", "skip": true}
+  {"document_title": "<EXACT DOCUMENT TYPE>", "skip": true}
 
-Rules for document_title:
-  - "DEBIT NOTE" or "D/N" in header → document_title = "DEBIT NOTE"
-  - "CREDIT NOTE" in header → document_title = "CREDIT NOTE"
-  - "ARRIVAL NOTICE" in header → document_title = "ARRIVAL NOTICE"
-  - "PACKING LIST" in header → document_title = "PACKING LIST"
-  - "CERTIFICATE OF ORIGIN" in header → document_title = "CERTIFICATE OF ORIGIN"
-  - "BOOKING CONFIRMATION" in header → document_title = "BOOKING CONFIRMATION"
-  - INVOICE (special rule):
-      Look at the "Bill To" / "To" / addressee on the invoice.
-      If addressee contains "JORDEX" → document_title = "AGENT INVOICE"
-      If addressee is any other company → document_title = "COMMERCIAL INVOICE"
-      If addressee unclear → document_title = "INVOICE"
-  - Any other non-BL → document_title = "<DOCUMENT HEADER TEXT>"
+MANDATORY document_title values (pick the BEST match):
+  - Header contains "DEBIT NOTE" or "D/N" or "DEBIT ADVICE" → "DEBIT NOTE"
+  - Header contains "CREDIT NOTE" → "CREDIT NOTE"  
+  - Header contains "ARRIVAL NOTICE" or "NOTICE OF ARRIVAL" → "ARRIVAL NOTICE"
+  - Header contains "PACKING LIST" → "PACKING LIST"
+  - Header contains "CERTIFICATE OF ORIGIN" → "CERTIFICATE OF ORIGIN"
+  - Header contains "BOOKING CONFIRMATION" → "BOOKING CONFIRMATION"
+  - Header contains "INVOICE" or "TAX INVOICE":
+      Addressee contains "JORDEX" → "AGENT INVOICE"
+      Addressee is another company → "COMMERCIAL INVOICE"
+      Addressee unclear → "INVOICE"
+  - Header contains "DELIVERY ORDER" → "DELIVERY ORDER"
+  - Header contains "MANIFEST" → "MANIFEST"
+  - Anything else → Use the EXACT header text (e.g. "FREIGHT INVOICE", "STORAGE NOTICE")
+  
+CRITICAL: "UNKNOWN" is NEVER acceptable. Read the document header/title and use it.
+If you truly cannot read any header text, use "OTHER DOCUMENT".
 
 CRITICAL: A debit note or invoice may mention vessel names, port names, BL numbers,
 and container numbers as REFERENCES. That does NOT make it a Bill of Lading.

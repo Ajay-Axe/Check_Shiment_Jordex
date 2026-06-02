@@ -653,5 +653,132 @@
     "first_seen": "2026-05-29T16:32:52",
     "last_checked": "2026-05-29T16:32:52",
     "check_count": 1
+  },
+  "28-May-2026__OI2613582": {
+    "ref": "OI2613582",
+    "date": "28 May 2026",
+    "first_seen": "2026-05-29T19:25:47",
+    "last_checked": "2026-05-29T19:25:47",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "28-May-2026__OI2614773": {
+    "ref": "OI2614773",
+    "date": "28 May 2026",
+    "first_seen": "2026-05-29T19:28:19",
+    "last_checked": "2026-05-29T19:28:19",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "28-May-2026__OI2614770": {
+    "ref": "OI2614770",
+    "date": "28 May 2026",
+    "first_seen": "2026-05-29T19:28:55",
+    "last_checked": "2026-05-29T19:28:55",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "28-May-2026__OI2615014": {
+    "ref": "OI2615014",
+    "date": "28 May 2026",
+    "first_seen": "2026-05-29T19:35:09",
+    "last_checked": "2026-05-29T19:35:09",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "28-May-2026__OI2616506": {
+    "ref": "OI2616506",
+    "date": "28 May 2026",
+    "first_seen": "2026-05-29T19:48:36",
+    "last_checked": "2026-05-29T19:48:36",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "29-May-2026__OI2610391": {
+    "ref": "OI2610391",
+    "date": "29 May 2026",
+    "first_seen": "2026-06-01T20:17:27",
+    "last_checked": "2026-06-01T20:17:27",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2614647": {
+    "ref": "OI2614647",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T14:20:47",
+    "last_checked": "2026-06-02T14:20:47",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2614652": {
+    "ref": "OI2614652",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T14:21:36",
+    "last_checked": "2026-06-02T14:21:36",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2614680": {
+    "ref": "OI2614680",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T14:22:14",
+    "last_checked": "2026-06-02T14:22:14",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2613658": {
+    "ref": "OI2613658",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T14:24:05",
+    "last_checked": "2026-06-02T14:24:05",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__UNKNOWN_REF": {
+    "ref": "UNKNOWN_REF",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T14:25:28",
+    "last_checked": "2026-06-02T14:25:28",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "2-Jun-2026__OI2615264": {
+    "ref": "OI2615264",
+    "date": "2 Jun 2026",
+    "first_seen": "2026-06-02T19:28:16",
+    "last_checked": "2026-06-02T19:28:16",
+    "check_count": 1
+  },
+  "1-Jun-2026__OI2614654": {
+    "ref": "OI2614654",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T19:34:36",
+    "last_checked": "2026-06-02T19:34:36",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2617363": {
+    "ref": "OI2617363",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T19:35:59",
+    "last_checked": "2026-06-02T19:35:59",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2616510": {
+    "ref": "OI2616510",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T19:38:31",
+    "last_checked": "2026-06-02T19:38:31",
+    "check_count": 1,
+    "old_doc_support": true
+  },
+  "1-Jun-2026__OI2616539": {
+    "ref": "OI2616539",
+    "date": "1 Jun 2026",
+    "first_seen": "2026-06-02T19:39:07",
+    "last_checked": "2026-06-02T19:39:07",
+    "check_count": 1,
+    "old_doc_support": true
   }
 }

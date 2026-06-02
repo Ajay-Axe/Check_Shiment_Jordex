@@ -591,9 +591,85 @@ def hmm_stealth_search(tracking_number: str, save_dir: str = None) -> dict:
 
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=1) as ex:
-        try: ex.submit(_run).result(timeout=300)
-        except Exception as e: final_result = {"error": f"HMM stealth failed: {e}"}
+        for attempt in range(3):
+            try:
+                ex.submit(_run).result(timeout=300)
+                if "error" not in final_result or "failed" not in final_result["error"].lower():
+                    break
+            except Exception as e:
+                final_result = {"error": f"HMM stealth failed: {e}"}
+                log.warning(f"HMM stealth attempt {attempt + 1} failed: {e}")
+                time.sleep(2)
     return final_result
+
+
+def maersk_stealth_search(tracking_number: str, save_dir: str = None) -> dict:
+    log.info("Maersk: Starting Stealth Bypass for %s...", tracking_number)
+    final_result = {"error": "Maersk stealth bypass failed"}
+
+    def stealth_action(page):
+        nonlocal final_result
+        try:
+            page.set_viewport_size({"width": 1280, "height": 720})
+            time.sleep(3)
+            try:
+                page.locator('[data-test="coi-allow-all-button"]').click(timeout=5000)
+                time.sleep(1)
+            except: pass
+            try:
+                page.locator('[data-test="finishButton"]').click(timeout=3000)
+                time.sleep(0.5)
+            except: pass
+            
+            search_box = page.get_by_role('textbox')
+            search_box.wait_for(state="visible", timeout=10000)
+            search_box.click()
+            time.sleep(0.5)
+            page.keyboard.press("Control+A")
+            page.keyboard.press("Delete")
+            time.sleep(0.5)
+            
+            search_box.type(tracking_number, delay=150)
+            time.sleep(1)
+            
+            page.locator('[data-test="track-button"]').get_by_role('button', name='Track').click()
+            try:
+                page.wait_for_selector(
+                    '[class*="tracking-result"], [class*="shipment-details"], [data-test="tracking-result"]',
+                    timeout=25000)
+            except:
+                log.warning("Maersk: Timeout waiting for results in stealth")
+            time.sleep(3)
+            final_result = extract_with_vision(page, "Maersk", tracking_number, save_dir=save_dir)
+        except Exception as e:
+            log.error("Maersk Stealth Action Error: %s", e)
+            final_result = {"error": str(e)}
+
+    def _run():
+        nonlocal final_result
+        try:
+            StealthyFetcher.fetch(
+                CARRIERS["Maersk"], headless=False, solve_cloudflare=True,
+                browser_type="chromium",
+                executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                block_webrtc=True, hide_canvas=True, network_idle=True,
+                google_search=True, wait=5, page_action=stealth_action)
+        except Exception as e:
+            final_result = {"error": f"Scrapling error: {e}"}
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=1) as ex:
+        for attempt in range(3):
+            try:
+                ex.submit(_run).result(timeout=300)
+                if "error" not in final_result or "failed" not in final_result["error"].lower():
+                    break
+            except Exception as e:
+                final_result = {"error": f"Maersk stealth failed: {e}"}
+                log.warning(f"Maersk stealth attempt {attempt + 1} failed: {e}")
+                time.sleep(2)
+    return final_result
+
 
 
 # def hapaglloyd_stealth_search(tracking_number: str, save_dir: str = None) -> dict:
@@ -911,7 +987,7 @@ def hmm_stealth_search(tracking_number: str, save_dir: str = None) -> dict:
 #         nonlocal final_result
 #         try:
 #             StealthyFetcher.fetch(
-#                 CARRIERS["Hapag-Lloyd"], headless=False, solve_cloudflare=True,
+#                 CARRIERS["Hapag-Lloyd"], headless=True, solve_cloudflare=True,
 #                 browser_type="chromium",
 #                 executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
 #                 block_webrtc=True, hide_canvas=True, network_idle=True,
@@ -1214,16 +1290,9 @@ def hapaglloyd_stealth_search(tracking_number: str, save_dir: str = None) -> dic
                             log.warning("Hapag-Lloyd: Could not extract terminal name")
 
                         if terminal_date:
-                            m = _re.match(r'(\d{4})-(\d{2})-(\d{2})', terminal_date)
-                            if m:
-                                terminal_date = f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
-                            if _re.match(r'\d{2}-\d{2}-\d{4}', terminal_date):
-                                final_result["eta"] = terminal_date
-                                log.info("Hapag-Lloyd: ETA overwritten → '%s'", terminal_date)
-                            else:
-                                log.warning("Hapag-Lloyd: Skipping non-date value: '%s'", terminal_date)
+                            log.info("Hapag-Lloyd: Terminal date found '%s' — keeping existing ETA, not overwriting.", terminal_date)
                         else:
-                            log.warning("Hapag-Lloyd: No terminal date found, ETA unchanged")
+                            log.warning("Hapag-Lloyd: No terminal date found.")
 
                         screenshot_bytes = page.screenshot(full_page=True)
                         save_screenshot(screenshot_bytes,
@@ -1251,8 +1320,15 @@ def hapaglloyd_stealth_search(tracking_number: str, save_dir: str = None) -> dic
 
     from concurrent.futures import ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=1) as ex:
-        try: ex.submit(_run).result(timeout=300)
-        except Exception as e: final_result = {"error": f"Hapag stealth failed: {e}"}
+        for attempt in range(3):
+            try:
+                ex.submit(_run).result(timeout=300)
+                if "error" not in final_result or "failed" not in final_result["error"].lower():
+                    break
+            except Exception as e:
+                final_result = {"error": f"Hapag stealth failed: {e}"}
+                log.warning(f"Hapag stealth attempt {attempt + 1} failed: {e}")
+                time.sleep(2)
     return final_result
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1494,6 +1570,14 @@ def track_on_page(page: Page, carrier_name: str, tracking_number: str,
 
             if carrier_key == "HMM":
                 result = hmm_stealth_search(tracking_number, save_dir=save_dir)
+                if result and "error" not in result:
+                    save_result_json(tracking_number, result, save_dir)
+                    return result
+                last_error = result.get("error") if result else "Stealth failed"
+                continue
+
+            if carrier_key == "Maersk":
+                result = maersk_stealth_search(tracking_number, save_dir=save_dir)
                 if result and "error" not in result:
                     save_result_json(tracking_number, result, save_dir)
                     return result
